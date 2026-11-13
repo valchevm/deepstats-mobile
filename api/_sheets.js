@@ -1,11 +1,7 @@
+import {subscription} from './_subscription.js';
 import {google} from 'googleapis';
 const ID=process.env.SPREADSHEET_ID||'1iEufNQy8doCcfPA0LkHxPLvvXKiRKc60rH2dtyVx_oo';
-export function access(req,res){
-  const expected=process.env.APP_ACCESS_TOKEN;
-  if(!expected){res.status(503).json({error:'Липсва APP_ACCESS_TOKEN в настройките на Vercel.'});return false;}
-  if(req.headers.authorization!==`Bearer ${expected}`){res.status(401).json({error:'Невалиден код за достъп.'});return false;}
-  return true;
-}
+export async function access(req,res){return Boolean(await subscription(req,res));}
 export async function sheets(){
  const email=process.env.GOOGLE_CLIENT_EMAIL;
  const key=process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g,'\n');

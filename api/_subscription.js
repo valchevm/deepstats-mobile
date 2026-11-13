@@ -1,0 +1,12 @@
+import {createHash,createHmac,randomBytes,timingSafeEqual} from 'node:crypto';
+const url=()=>process.env.SUPABASE_URL?.replace(/\/$/,'');
+const key=()=>process.env.SUPABASE_SERVICE_ROLE_KEY;
+const secret=()=>process.env.SESSION_SECRET;
+export const configured=()=>Boolean(url()&&key()&&secret());
+export const hashCode=code=>createHash('sha256').update(String(code).trim().toUpperCase()).digest('hex');
+const safe=(a,b)=>{const x=Buffer.from(a||''),y=Buffer.from(b||'');return x.length===y.length&&timingSafeEqual(x,y)};
+export const admin=req=>{const expected=process.env.APP_ACCESS_TOKEN;return Boolean(expected&&safe(req.headers.authorization?.replace(/^Bearer /i,''),expected))};
+export function signSession(id,expires){const payload=Buffer.from(JSON.stringify({id,exp:expires})).toString('base64url');const sig=createHmac('sha256',secret()).update(payload).digest('base64url');return payload+'.'+sig}
+export function verifySession(token){try{const [payload,sig]=String(token||'').split('.');if(!payload||!sig||!secret())return null;const expected=createHmac('sha256',secret()).update(payload).digest('base64url');if(!safe(sig,expected))return null;const data=JSON.parse(Buffer.from(payload,'base64url').toString());return data.exp>Date.now()&&typeof data.id==='string'?data:null}catch{return null}}
+export async function db(path,{method='GET',body}={}){if(!url()||!key())throw Error('Абонаментната база не е конфигурирана');const r=await fetch(url()+'/rest/v1/'+path,{method,headers:{apikey:key(),Authorization:'Bearer '+key(),'Content-Type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'});if(!r.ok)throw Error('Грешка при абонаментната база ('+r.status+')');return r.status===204?[]:r.json()}
+export async function subscription(req,res){if(admin(req))return {admin:true};if(!configured()){res.status(401).json({error:'Невалиден код за достъп.'});return null}const session=verifySession(req.headers.authorization?.replace(/^Bearer /i,''));if(!session){res.status(401).json({error:'Необходим е валиден абонамент.'});return null}const rows=await db('ds_subscribers?id=eq.'+encodeURIComponent(session.id)+'&select=id,name,status,expires_at&limit=1');const user=rows[0];if(!user||user.status!=='active'||Date.parse(user.expires_at)<=Date.now()){res.status(401).json({error:'Абонаментът е изтекъл или спрян.'});return null}return user}
