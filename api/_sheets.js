@@ -1,7 +1,5 @@
 import {google} from 'googleapis';
 const ID=process.env.SPREADSHEET_ID||'1iEufNQy8doCcfPA0LkHxPLvvXKiRKc60rH2dtyVx_oo';
-export const BUILDER_SHEET='MOBILE_BUILDS';
-export const HEADERS=['ID','Дата','Мач','Селекции JSON','Коефициент','Създаден на','Статус','Бележка'];
 export function access(req,res){
   const expected=process.env.APP_ACCESS_TOKEN;
   if(!expected){res.status(503).json({error:'Липсва APP_ACCESS_TOKEN в настройките на Vercel.'});return false;}

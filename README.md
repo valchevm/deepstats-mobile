@@ -1,24 +1,26 @@
-# DeepStats Mobile — Vercel PWA
+# DeepStats Mobile PRO
 
-## What is implemented
-- Installable dark-navy Android PWA, five navigation tabs.
-- Live statistics and BEST OF THE DAY from `СТАТИСТИКА` / `СЕЛЕКЦИИ`.
-- Date-filtered selections, A–F summary from `ДНЕВЕН ЦЕНТЪР`.
-- Build from selections in the **same match**, save to a separate `MOBILE_BUILDS` tab; history of app-created builders.
-- Private API protected by an application access code; Google credentials stay on the server.
-- Service worker caches **only app assets**; match data are not persisted offline.
+Професионално мобилно PWA приложение за анализ на мачове, стратегии, билдъри и резултати.
 
-## Deployment
-1. Create a **private** GitHub repository and upload the files from this folder to the repository root.
-2. In Google Cloud Console, enable Google Sheets API and create a service account. Create a JSON key and keep it private.
-3. Share the existing Google spreadsheet with the service-account `client_email` as **Editor**. This is required to save builders.
-4. Import the GitHub repository into Vercel. Choose framework **Other**, root directory `/`, no build command, output directory `public` (if Vercel asks for output directory). Set environment variables from `.env.example` in Vercel Project Settings → Environment Variables. Use the JSON `private_key` value as `GOOGLE_PRIVATE_KEY`; if pasted as literal `\\n`, the backend converts it.
-5. Deploy and open the `https://...vercel.app` URL in Chrome on Android. Choose ⋮ → Add to Home screen → Install.
-6. Test stats, date-filtered selections, and saving **one test builder**. Confirm it appears in `MOBILE_BUILDS` and in History.
+## Инсталация
 
-## Important boundaries
-- The existing 7 tabs are never modified by this code. The first write creates `MOBILE_BUILDS` and appends a row.
-- Existing formulas and statistical summaries do **not yet include** `MOBILE_BUILDS`. Integration with original builder accounting needs a separate mapping/reconciliation step to prevent double counting.
-- This version does not implement editing or settling builders, automatic result settlement, custom strategy filter creation, or all advanced strategy/builder functions. These require further development and testing against the original sheet formulas.
-- Do not upload the service account JSON or `.env` files to GitHub. The access token is a lightweight personal gate, not full multi-user authentication. Keep the repo private and use a long unique token.
-- If the spreadsheet's column layout changes, update the mappings in `api/data.js`.
+1. Качете съдържанието на папката в GitHub репозитория.
+2. Свържете репозитория с Vercel.
+3. Във Vercel добавете `APP_ACCESS_TOKEN`, `GOOGLE_CLIENT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `SPREADSHEET_ID`. Не добавяйте частния ключ в GitHub.
+4. Публикувайте. При стара кеширана версия презаредете приложението.
+
+## Данни и правила
+
+- `СЕЛЕКЦИИ`: всички мачове и текущите BEST OF THE DAY.
+- `СТРАТЕГИИ_ДАННИ`: стратегии A, B, C, D1, D2, D3, E, F по флаговете в колони N–W. Един залог може да участва в няколко стратегии; сумата им не е уникален глобален резултат.
+- `ДАННИ!L:U`: единствен източник за създадени билдъри. Няма фалшиви или локално измислени билдъри.
+- `ДАННИ!A:J`: индивидуални залози за обща статистика.
+- `СТАТИСТИКА`: общи KPI на началния екран.
+
+Приложението е само за четене. Няма API маршрут за запис. В интерфейса не се споменават технологии или имена на таблици.
+
+## Проверки
+
+`npm install && npm run check`
+
+Проверете във Vercel мачовете по дата, отварянето на стратегия, наличните билдъри и филтрите за статистика.
