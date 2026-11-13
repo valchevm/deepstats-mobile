@@ -12,3 +12,36 @@ body{background:radial-gradient(ellipse 100% 300px at 50% -120px,#123553,transpa
 
 /* DeepStats Executive Dark */
 :root{--bg:#080e17;--surface:#111b28;--surface2:#182637;--line:#263445;--blue:#2d9ff5;--green:#42d3a0}body{background:linear-gradient(160deg,#0c1828 0%,#080e17 34%,#080e17 100%)}.top{border-bottom-color:#202d3d}.brand strong{font-size:19px;letter-spacing:-.5px}.brand small{letter-spacing:1.4px;color:#7f98ae}.metric,.strategy-line,.match-card{box-shadow:none;background:#111c2b;border-color:#25364a}.metric{border-radius:17px}.match-card{border-radius:14px}.btn.blue{background:#168be0}.bottom{background:#0a1421eF;backdrop-filter:blur(18px)}
+
+
+/* DeepStats v8.1 — Executive Dark: full interface refresh */
+:root{--bg:#080c12;--surface:#111923;--surface2:#17212e;--line:#273240;--text:#f3f6fa;--muted:#94a2b3;--blue:#54a9e9;--green:#3ad7a2;--red:#f17987}
+html,body{background:#080c12!important}
+body{background:linear-gradient(180deg,#131e2a 0,#0a1018 290px,#080c12 650px)!important;font-family:Inter,system-ui,-apple-system,sans-serif;letter-spacing:-.01em}
+.app{max-width:900px}
+.top{height:88px;padding:20px 28px;background:#0c141eb8;border-bottom:1px solid #27313e;backdrop-filter:blur(18px)}
+.brand{gap:15px}.brand strong{font-size:24px;font-weight:800;letter-spacing:-1.2px}.brand small{font-size:9px;letter-spacing:2.3px;color:#8b9bab;margin-top:2px}
+.brand-mark{width:47px;height:47px;background:linear-gradient(145deg,#263e53,#0d1823);border:1px solid #39536a;border-radius:14px;align-items:center;justify-content:center;padding:9px;gap:3px}
+.brand-mark i{width:6px!important;box-shadow:none!important;background:linear-gradient(#9bd9ff,#2b84ca)!important}
+.icon-btn{background:#17222f;border:1px solid #334354;border-radius:13px;color:#d8e8f7}
+.headline{padding:34px 28px 26px}.eyebrow{font-size:10px;color:#89bde5;letter-spacing:3px}.headline h1{font-size:clamp(30px,5vw,43px);font-weight:800;letter-spacing:-1.8px;margin:9px 0 8px}.headline p{font-size:13px;color:#9cabbc}
+#content{padding:0 26px 42px}
+.home-date{background:#141e2a;border:1px solid #2a3949;border-radius:16px;padding:17px 20px;font-size:13px;box-shadow:none}
+.live-dot{box-shadow:0 0 0 4px #2cbe8a1b;background:#42d7a4}
+.section-head{margin:32px 2px 16px}.section-head h2{font-size:19px;letter-spacing:-.6px;font-weight:750}
+.metrics{gap:12px}.metric{background:#141f2b!important;border:1px solid #2b3b4c!important;border-radius:19px!important;padding:20px!important;min-height:128px;box-shadow:none!important}
+.metric.positive{background:#10251f!important;border-color:#285143!important}.metric.negative{background:#281b24!important;border-color:#553544!important}
+.metric-top{font-size:11px;color:#aebdca;letter-spacing:.1px}.metric-icon{font-size:23px;color:#8fc8ed}.metric strong{font-size:29px;font-weight:800;letter-spacing:-1.5px;margin-top:19px}
+.strategy-stack,.match-list{gap:11px}.strategy-line{min-height:80px;padding:17px 18px;border-radius:16px;background:#131e2a!important;border:1px solid #2a3949!important;box-shadow:none!important;transition:border-color .15s,background .15s}
+.strategy-line:hover,.strategy-line.expanded{border-color:#4c82ac!important;background:#19283a!important}
+.strategy-badge{width:42px;height:42px;flex-basis:42px;border-radius:13px;box-shadow:none;font-size:16px}
+.line-info b{font-size:13px;font-weight:750}.line-info small{font-size:11px;margin-top:5px}.line-result{font-size:14px}.line-result small{font-size:11px;margin-top:5px}
+.match-card{background:#131d29!important;border:1px solid #293a4b!important;border-radius:17px!important;padding:19px!important;box-shadow:none!important}
+.match-top{font-size:11px;color:#a2b2c2}.match-title{font-size:16px;letter-spacing:-.4px;margin:15px 0}.match-pick{background:#0d2325;border-color:#29514b;border-radius:11px;padding:13px}
+.filter-panel,.page-intro,.selection-panel,.saved-panel,.chart-box,.expanded-content{border-radius:17px}
+.segmented{border-radius:13px}.segmented button{border-radius:10px}.btn{border-radius:11px}.btn.blue{background:#238fdb}
+.bottom{max-width:900px;background:#0b131dec!important;border-top:1px solid #2a3848;box-shadow:0 -10px 36px #0005;backdrop-filter:blur(20px)}
+.bottom button.active{color:#a8d9fb}
+.status{border-radius:8px}
+@media(min-width:700px){.metrics{grid-template-columns:repeat(4,minmax(0,1fr))}.headline{padding-top:42px}.top{padding-inline:34px}#content{padding-inline:32px}}
+@media(max-width:480px){.top{height:77px;padding:14px 18px}.brand strong{font-size:21px}.brand-mark{width:41px;height:41px}.headline{padding:28px 19px 22px}.headline h1{font-size:34px}#content{padding:0 16px 32px}.metric{padding:16px!important;min-height:117px}.metric strong{font-size:25px}.match-card{padding:16px!important}.strategy-line{padding:14px}.section-head h2{font-size:18px}}
