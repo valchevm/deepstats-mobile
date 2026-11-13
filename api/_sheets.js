@@ -12,15 +12,8 @@ export async function sheets(){
  const email=process.env.GOOGLE_CLIENT_EMAIL;
  const key=process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g,'\n');
  if(!email||!key)throw new Error('Липсват Google service account credentials.');
- const auth=new google.auth.JWT({email,key,scopes:['https://www.googleapis.com/auth/spreadsheets']});
+ const auth=new google.auth.JWT({email,key,scopes:['https://www.googleapis.com/auth/spreadsheets.readonly']});
  return google.sheets({version:'v4',auth});
 }
 export async function read(s,range){const r=await s.spreadsheets.values.get({spreadsheetId:ID,range,valueRenderOption:'FORMATTED_VALUE'});return r.data.values||[];}
-export async function ensureBuilderSheet(s){
- const meta=await s.spreadsheets.get({spreadsheetId:ID,fields:'sheets.properties.title'});
- if(!meta.data.sheets?.some(x=>x.properties.title===BUILDER_SHEET)){
-   await s.spreadsheets.batchUpdate({spreadsheetId:ID,requestBody:{requests:[{addSheet:{properties:{title:BUILDER_SHEET}}}]}});
-   await s.spreadsheets.values.update({spreadsheetId:ID,range:`'${BUILDER_SHEET}'!A1:H1`,valueInputOption:'RAW',requestBody:{values:[HEADERS]}});
- }
-}
 export {ID};
