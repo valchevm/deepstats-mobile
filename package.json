@@ -1,0 +1,1 @@
+{"name":"deepstats-mobile","version":"0.2.0","private":true,"type":"module","scripts":{"dev":"vercel dev","check":"node --check api/data.js && node --check api/builders.js && node --check api/_sheets.js && node --check public/app.js"},"dependencies":{"googleapis":"^144.0.0"},"engines":{"node":">=20"}}
