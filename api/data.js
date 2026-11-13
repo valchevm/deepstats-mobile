@@ -18,7 +18,29 @@ const kind=txt(req.query.kind||'dashboard');const from=txt(req.query.from||req.q
 if(kind==='dashboard'){const [stat,best,summary]=await Promise.all([read(s,S.summary),read(s,S.best),read(s,"'ДНЕВЕН ЦЕНТЪР'!M3:Q10")]);const metrics={};stat.forEach(r=>{if(r[0])metrics[txt(r[0])]={selections:txt(r[1]),builders:txt(r[3]),total:txt(r[5])}});return send(res,{metrics,best:selections(best),strategySummary:summary.map((r,i)=>({key:keys[i],name:strategyNames[keys[i]],count:num(r[1]),settled:num(r[2]),profit:num(r[3]),yield:num(r[4])})),updatedAt:new Date().toISOString()})}
 if(kind==='matches'){const [main,best]=await Promise.all([read(s,S.selections),read(s,S.best)]);const a=selections(main),b=selections(best);const ids=new Set(a.map(p=>[p.date,p.match,p.selection].join('|')));const merged=[...a,...b.filter(p=>!ids.has([p.date,p.match,p.selection].join('|')))];return send(res,{items:filter(merged,{from,to}),count:merged.length})}
 if(kind==='strategies'){const rows=strategies(await read(s,S.strategy));const period=filter(rows,{from,to});const by=keys.map(k=>{const items=period.filter(r=>r.strategies.includes(k));return {key:k,name:strategyNames[k],stats:calc(items),items}});return send(res,{groups:by,stats:calc(period.filter(r=>r.strategies.length)),dates:[...new Set(rows.map(r=>r.date))].sort((a,b)=>dateKey(b).localeCompare(dateKey(a)))})}
-if(kind==='builders'){const rows=builders(await read(s,S.builders));return send(res,{items:filter(rows,{from,to}),stats:calc(filter(rows,{from,to})),allCount:rows.length,sourceUrl:`https://docs.google.com/spreadsheets/d/${ID}/edit#gid=1534084346`})}
-if(kind==='statistics'){const [sr,br,sel]=await Promise.all([read(s,S.strategy),read(s,S.builders),read(s,"'ДАННИ'!A2:J25000")]);const st=strategies(sr),bu=builders(br);const all=sel.filter(r=>txt(r[0])==='Селекция'&&valid(txt(r[1]))).map((r,i)=>({id:'a'+i,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),odds:num(r[5]),result:txt(r[7]),status:state(r[7]),pl:txt(r[8])===''?null:num(r[8])}));const filteredAll=filter(all,{from,to}),filteredBu=filter(bu,{from,to});const groups=keys.map(k=>({key:k,name:strategyNames[k],stats:calc(filter(st.filter(r=>r.strategies.includes(k)),{from,to}))}));const period=[...filteredAll,...filteredBu];const daily=new Map();for(const r of period){if(r.status==='pending')continue;daily.set(r.date,(daily.get(r.date)||0)+(r.pl??(r.status==='win'?r.odds-1:r.status==='loss'?-1:0)))}return send(res,{all:calc(period),selections:calc(filteredAll),builders:calc(filteredBu),groups,daily:[...daily].sort((a,b)=>dateKey(a[0]).localeCompare(dateKey(b[0]))).map(([date,pl])=>({date,pl:+pl.toFixed(2)}))})}
+if(kind==='builders'){
+ const [br,allBest,liveBest]=await Promise.all([read(s,S.builders),read(s,S.archive),read(s,S.best)]);
+ const own=filter(builders(br),{from,to});
+ const historical=selections(allBest);const current=selections(liveBest);
+ const known=new Set(historical.map(r=>[r.date,r.match,r.selection].join('|')));
+ const best=filter([...historical,...current.filter(r=>!known.has([r.date,r.match,r.selection].join('|')))],{from,to});
+ const days=new Map();for(const p of best){if(!days.has(p.date))days.set(p.date,[]);days.get(p.date).push(p)}
+ const proposals=[...days].map(([date,items])=>({id:'best-'+date,date,items,legs:items.length,odds:items.reduce((v,r)=>v*(r.odds||1),1),status:'proposal'})).sort((a,b)=>dateKey(b.date).localeCompare(dateKey(a.date)));
+ return send(res,{items:own,proposals,stats:calc(own),allCount:br.length});
+ }
+if(kind==='statistics'){
+ const [sr,br,sel,arch,best]=await Promise.all([read(s,S.strategy),read(s,S.builders),read(s,"'ДАННИ'!A2:J25000"),read(s,S.archive),read(s,S.best)]);
+ const st=strategies(sr),bu=builders(br);
+ const all=sel.filter(r=>txt(r[0])==='Селекция'&&valid(txt(r[1]))).map((r,i)=>({id:'a'+i,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),odds:num(r[5]),result:txt(r[7]),status:state(r[7]),pl:txt(r[8])===''?null:num(r[8])}));
+ const historical=selections(arch),current=selections(best),existing=new Set(historical.map(r=>[r.date,r.match,r.selection].join('|')));
+ const bestItems=[...historical,...current.filter(r=>!existing.has([r.date,r.match,r.selection].join('|')))];
+ const selected=txt(req.query.sources).split(',').filter(Boolean);const sources=txt(req.query.sources)==='none'?[]:(selected.length?selected:['all']);
+ const allowed=new Set(['all','builders','best',...keys]);if(sources.some(x=>!allowed.has(x)))return res.status(400).json({error:'Невалиден избор на категория.'});
+ const groups=keys.map(k=>({key:k,name:strategyNames[k],stats:calc(filter(st.filter(r=>r.strategies.includes(k)),{from,to}))}));
+ const scoped={all:filter(all,{from,to}),builders:filter(bu,{from,to}),best:filter(bestItems,{from,to})};
+ const picked=[];const seen=new Set();for(const source of sources){const rows=keys.includes(source)?filter(st.filter(r=>r.strategies.includes(source)),{from,to}):scoped[source];for(const row of rows){const key=source==='builders'?'builder|'+row.date+'|'+row.match+'|'+row.selection:row.date+'|'+row.match+'|'+row.selection;if(seen.has(key))continue;seen.add(key);picked.push(row)}}
+ const daily=new Map();for(const r of picked){if(r.status==='pending')continue;daily.set(r.date,(daily.get(r.date)||0)+(r.pl??(r.status==='win'?r.odds-1:r.status==='loss'?-1:0)))}
+ return send(res,{selected:calc(picked),selectedSources:sources,all:calc(scoped.all),builders:calc(scoped.builders),best:calc(scoped.best),groups,daily:[...daily].sort((a,b)=>dateKey(a[0]).localeCompare(dateKey(b[0]))).map(([date,pl])=>({date,pl:+pl.toFixed(2)}))});
+}
 if(kind==='archive'){const rows=selections(await read(s,S.archive));return send(res,{items:filter(rows,{from,to})})}
 return res.status(400).json({error:'Непозната заявка.'});}catch(e){console.error('data endpoint:',e);return res.status(500).json({error:'Неуспешно зареждане. Опитай отново.'})}}
