@@ -109,3 +109,17 @@ body{background:radial-gradient(ellipse at 50% -280px,#142b50,transparent 55%),#
 .ds11-crest{background:#0b2946}
 .ds11-chart-panel .chart-box svg{height:175px;filter:drop-shadow(0 0 6px #20eaa044)}
 @media(max-width:420px){.ds11-pick{grid-template-columns:45px minmax(0,1fr) 49px 65px;gap:5px;padding:5px}.ds11-pick-type{width:45px;font-size:10px}.ds11-pick>b{width:49px;font-size:12px}.ds11-pick .status{width:65px;font-size:8px}.ds11-team{grid-template-columns:33px minmax(0,1fr)}.ds11-team:last-child{grid-template-columns:minmax(0,1fr) 33px}.ds11-team b{font-size:11px}}
+
+/* v12.1 chart — crisp data visualization, never stretch SVG geometry */
+.ds11-chart-panel{padding:18px 16px 12px;background:linear-gradient(145deg,#10233a,#091626);border:1px solid #28455e;border-radius:19px}
+.ds11-chart-panel .ds12-chart{margin-top:12px}
+.ds12-chart{background:linear-gradient(160deg,#0c2035,#091729);border:1px solid #24425b;border-radius:18px;padding:18px 15px 12px;overflow:hidden}
+.ds12-chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.ds12-chart-head small{display:block;color:#9eb6cb;font-size:10px;font-weight:800;letter-spacing:1.2px}
+.ds12-chart-head strong{display:block;margin-top:4px;font-size:27px;font-variant-numeric:tabular-nums;letter-spacing:-.8px}
+.ds12-chart-count{font-size:11px;color:#9db6ca;white-space:nowrap}
+.ds12-chart svg,.ds11-chart-panel .ds12-chart svg{display:block;width:100%;height:auto;aspect-ratio:720/254;max-height:none;filter:none;overflow:visible;margin-top:13px}
+.ds12-chart-foot{display:flex;justify-content:space-between;gap:10px;color:#8ba4b9;font-size:10px}
+.ds12-chart-empty{padding:35px 15px;display:grid;gap:8px;text-align:center;border:1px dashed #33516c;border-radius:15px;color:#afc4d6}
+.ds12-chart-empty b{color:#edf7ff}
+@media(max-width:420px){.ds12-chart{padding:13px 10px}.ds12-chart-head strong{font-size:22px}.ds12-chart-count{font-size:9px}.ds12-chart-foot{font-size:9px}}
