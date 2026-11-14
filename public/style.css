@@ -136,3 +136,21 @@ body{background:radial-gradient(ellipse at 50% -200px,#0e2140,transparent 65%),#
 .ds13-chart-panel{margin-top:17px;border:1px solid #24435d;border-radius:18px;background:linear-gradient(135deg,#11253c,#071728);padding:15px}.ds13-panel-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}.ds13-panel-heading b{font-size:15px}.ds13-panel-heading span{border-radius:11px;border:1px solid #137b53;background:#084734;padding:6px 10px;color:#76ffc0;font-weight:800}.ds13-chart-panel .ds12-chart{border:0;background:transparent;padding:3px 0 0}.ds13-chart-panel .ds12-chart-head,.ds13-chart-panel .ds12-chart-foot{display:none}.ds13-chart-panel .ds12-chart svg{margin-top:4px}
 .ds13-fixtures{display:grid;gap:12px}.bottom{background:#061326f7;border:1px solid #1b3853;border-bottom:0;border-radius:27px 27px 0 0;box-shadow:0 -10px 35px #0009}.bottom button.active{background:linear-gradient(#085c69,#06434e);border:1px solid #05bfc4;border-radius:18px;color:#e8ffff}.bottom button{font-size:11px}.bottom button span{font-size:23px}
 @media(max-width:390px){.ds13-kpis{gap:5px}.ds13-kpis strong{font-size:14px}.ds13-kpis span{font-size:9px}.ds13-tabs button{font-size:11px}.ds13-best-detail b{font-size:16px}}
+
+/* v13 fixture card screenshot alignment */
+.ds13-match-card{background:linear-gradient(120deg,#10243b,#0b1b30);border:1px solid #263b55;border-radius:20px;box-shadow:0 10px 25px #0003}
+.ds13-match-card .fixture-toggle{padding:17px}
+.ds13-match-card .ds11-fixture-top{font-size:12px;color:#cbd6e4}
+.ds13-star{font-size:22px;color:#e5edff}
+.ds13-match-card .ds11-teams{min-height:70px;margin:10px 0 16px}
+.ds13-match-card .ds11-team b{font-size:16px;font-weight:800}
+.ds13-match-card .ds11-crest{height:49px;width:49px;flex-basis:49px;border:0;background:transparent}
+.ds13-match-card .ds11-team{grid-template-columns:49px minmax(0,1fr)}
+.ds13-match-card .ds11-team:last-child{grid-template-columns:minmax(0,1fr) 49px}
+.ds13-match-card .ds11-pick{border:0;background:transparent;padding:0;grid-template-columns:83px minmax(0,1fr) 60px 61px;min-height:41px;gap:6px}
+.ds13-pick-label{border:1px solid #11674c;border-radius:11px;background:linear-gradient(#064d35,#063a2c);color:#38f79e;padding:8px 4px;text-align:center;font-size:11px;font-weight:800}
+.ds13-market{font-size:13px;color:#f5f9ff;font-weight:700;overflow-wrap:anywhere}
+.ds13-match-card .ds11-pick>b{border:1px solid #09ce76;background:#083e32;color:#fff;border-radius:10px;font-size:15px}
+.ds13-confidence{font-size:12px;color:#f2faff;font-weight:800;text-align:right;white-space:nowrap}
+.ds13-match-card .ds11-expand{color:#829cb6;font-size:10px;margin-top:9px}
+@media(max-width:420px){.ds13-match-card .ds11-pick{grid-template-columns:69px minmax(0,1fr) 49px 53px;gap:4px}.ds13-pick-label{font-size:10px}.ds13-market{font-size:11px}.ds13-confidence{font-size:10px}.ds13-match-card .ds11-team b{font-size:12px}.ds13-match-card .ds11-team{grid-template-columns:36px minmax(0,1fr)}.ds13-match-card .ds11-team:last-child{grid-template-columns:minmax(0,1fr) 36px}.ds13-match-card .ds11-crest{width:36px;height:36px;flex-basis:36px}}
