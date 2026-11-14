@@ -13,5 +13,7 @@ export async function sheets(){
  const auth=new google.auth.JWT({email,key,scopes:['https://www.googleapis.com/auth/spreadsheets.readonly']});
  return google.sheets({version:'v4',auth});
 }
+export const ARCHIVE_ID=process.env.ARCHIVE_SPREADSHEET_ID||'1juZ5MOZXaH37ozlCaWIbGKJsmdL3eeofOEjNeiN8cNU';
+export async function readFrom(s,spreadsheetId,range){const r=await s.spreadsheets.values.get({spreadsheetId,range,valueRenderOption:'FORMATTED_VALUE'});return r.data.values||[];}
 export async function read(s,range){const r=await s.spreadsheets.values.get({spreadsheetId:ID,range,valueRenderOption:'FORMATTED_VALUE'});return r.data.values||[];}
 export {ID};
