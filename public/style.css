@@ -154,3 +154,13 @@ body{background:radial-gradient(ellipse at 50% -200px,#0e2140,transparent 65%),#
 .ds13-confidence{font-size:12px;color:#f2faff;font-weight:800;text-align:right;white-space:nowrap}
 .ds13-match-card .ds11-expand{color:#829cb6;font-size:10px;margin-top:9px}
 @media(max-width:420px){.ds13-match-card .ds11-pick{grid-template-columns:69px minmax(0,1fr) 49px 53px;gap:4px}.ds13-pick-label{font-size:10px}.ds13-market{font-size:11px}.ds13-confidence{font-size:10px}.ds13-match-card .ds11-team b{font-size:12px}.ds13-match-card .ds11-team{grid-template-columns:36px minmax(0,1fr)}.ds13-match-card .ds11-team:last-child{grid-template-columns:minmax(0,1fr) 36px}.ds13-match-card .ds11-crest{width:36px;height:36px;flex-basis:36px}}
+
+/* V14 — luxe outline sparkle and real badge presentation */
+.ds14-luxe-symbol{display:inline-grid;place-items:center;vertical-align:middle;font-family:Georgia,"Times New Roman",serif;font-size:1.65em;font-weight:400;line-height:.7;color:#fff2c8;text-shadow:0 0 2px #fff7d8,0 0 10px #f3ca78a8,0 0 23px #dba74777;filter:drop-shadow(0 1px 0 #9c6637);transform:translateY(-1px)}
+.ds13-best-heading .ds14-luxe-symbol{font-size:29px;line-height:1;vertical-align:-2px;margin-right:1px}
+.ds13-best{border-color:#b99052;background:linear-gradient(115deg,#30251d 0%,#24192f 54%,#351e35 100%);box-shadow:inset 0 1px 0 #ffe5a54d,0 8px 32px #0006}
+.ds13-best-heading{color:#ffe2a3;letter-spacing:.2px}
+.ds13-best-heading span:not(.ds14-luxe-symbol){color:#ffe2a3}
+.proposal-icon.ds14-luxe-symbol{font-size:30px}
+.ds11-crest.has-crest{border:0;background:transparent;box-shadow:none;overflow:visible}
+.ds11-crest.has-crest img{padding:0;object-fit:contain;filter:drop-shadow(0 2px 5px #0009)}
