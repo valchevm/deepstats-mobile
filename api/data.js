@@ -29,7 +29,7 @@ if(kind==='builders'){
  const known=new Set(historical.map(r=>[r.date,r.match,r.selection].join('|')));
  const best=filter([...historical,...current.filter(r=>!known.has([r.date,r.match,r.selection].join('|')))],{from,to});
  const days=new Map();for(const p of best){if(!days.has(p.date))days.set(p.date,[]);days.get(p.date).push(p)}
- const proposals=[...days].map(([date,items])=>({id:'best-'+date,date,items,legs:items.length,odds:items.reduce((v,r)=>v*(r.odds||1),1),status:'proposal'})).sort((a,b)=>dateKey(b.date).localeCompare(dateKey(a.date)));
+ const proposals=[...days].map(([date,items])=>({id:'best-'+date,date,items,legs:items.length,odds:items.length&&items.every(r=>Number.isFinite(r.odds)&&r.odds>1)?items.reduce((v,r)=>v*r.odds,1):null,status:items.some(r=>r.status==='loss')?'loss':items.length&&items.every(r=>['win','void'].includes(r.status))?(items.every(r=>r.status==='void')?'void':'win'):'pending'})).sort((a,b)=>dateKey(b.date).localeCompare(dateKey(a.date)));
  return send(res,{items:own,proposals,stats:calc(own),allCount:br.length});
  }
 if(kind==='statistics'){
