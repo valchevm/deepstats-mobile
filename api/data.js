@@ -15,15 +15,16 @@ const filter=(rows,q)=>rows.filter(r=>inPeriod(r.date,q.from,q.to));
 const historicalTabs={selections:'HISTORY_SELECTIONS',strategy:'HISTORY_STRATEGIES',builders:'HISTORY_DATA_BUILDERS',data:'HISTORY_DATA_SELECTIONS',extra:'HISTORY_DATA_EXTRA',odds:'HISTORY_ODDS'};
 async function archiveRows(s,tab){try{const rows=await readFrom(s,ARCHIVE_ID,"'"+tab+"'!A2:AZ25000");return rows.map(r=>r.slice(3)).filter(r=>r.some(v=>txt(v)))}catch(e){if(e.code===404||e.code===400||e.response?.status===404||e.response?.status===400)return [];console.error('Archive read failed:',tab,e.message);throw e}}
 function unionRows(current,historical){const seen=new Set();return [...current,...historical].filter(r=>{const key=JSON.stringify(r);if(seen.has(key))return false;seen.add(key);return true})}
+function uniqueEntries(rows){const seen=new Set();return rows.filter(r=>{const key=[r.date,r.match,r.selection,r.odds,r.result].join('|');if(seen.has(key))return false;seen.add(key);return true})}
 const send=(res,data)=>{res.setHeader('Cache-Control','private, no-store');return res.json(data)};
 export default async function handler(req,res){if(req.method!=='GET')return res.status(405).end();if(!access(req,res))return;try{
 const kind=txt(req.query.kind||'dashboard');const from=txt(req.query.from||req.query.date),to=txt(req.query.to||req.query.date);if((from&&!valid(from))||(to&&!valid(to)))return res.status(400).json({error:'Невалидна дата.'});const s=await sheets();
 if(kind==='dashboard'){const [stat,best,summary]=await Promise.all([read(s,S.summary),read(s,S.best),read(s,"'ДНЕВЕН ЦЕНТЪР'!M3:Q10")]);const metrics={};stat.forEach(r=>{if(r[0])metrics[txt(r[0])]={selections:txt(r[1]),builders:txt(r[3]),total:txt(r[5])}});return send(res,{metrics,best:selections(best),strategySummary:summary.map((r,i)=>({key:keys[i],name:strategyNames[keys[i]],count:num(r[1]),settled:num(r[2]),profit:num(r[3]),yield:num(r[4])})),updatedAt:new Date().toISOString()})}
-if(kind==='matches'){const [main,best,old]=await Promise.all([read(s,S.selections),read(s,S.best),archiveRows(s,historicalTabs.selections)]);const a=selections(unionRows(main,old)),b=selections(best);const ids=new Set(a.map(p=>[p.date,p.match,p.selection].join('|')));const merged=[...a,...b.filter(p=>!ids.has([p.date,p.match,p.selection].join('|')))];return send(res,{items:filter(merged,{from,to}),count:merged.length})}
-if(kind==='strategies'){const [current,old]=await Promise.all([read(s,S.strategy),archiveRows(s,historicalTabs.strategy)]);const rows=strategies(unionRows(current,old));const period=filter(rows,{from,to});const by=keys.map(k=>{const items=period.filter(r=>r.strategies.includes(k));return {key:k,name:strategyNames[k],stats:calc(items),items}});return send(res,{groups:by,stats:calc(period.filter(r=>r.strategies.length)),dates:[...new Set(rows.map(r=>r.date))].sort((a,b)=>dateKey(b).localeCompare(dateKey(a)))})}
+if(kind==='matches'){const [main,best,old]=await Promise.all([read(s,S.selections),read(s,S.best),archiveRows(s,historicalTabs.selections)]);const a=uniqueEntries(selections(unionRows(main,old))),b=selections(best);const ids=new Set(a.map(p=>[p.date,p.match,p.selection].join('|')));const merged=[...a,...b.filter(p=>!ids.has([p.date,p.match,p.selection].join('|')))];return send(res,{items:filter(merged,{from,to}),count:merged.length})}
+if(kind==='strategies'){const [current,old]=await Promise.all([read(s,S.strategy),archiveRows(s,historicalTabs.strategy)]);const rows=uniqueEntries(strategies(unionRows(current,old)));const period=filter(rows,{from,to});const by=keys.map(k=>{const items=period.filter(r=>r.strategies.includes(k));return {key:k,name:strategyNames[k],stats:calc(items),items}});return send(res,{groups:by,stats:calc(period.filter(r=>r.strategies.length)),dates:[...new Set(rows.map(r=>r.date))].sort((a,b)=>dateKey(b).localeCompare(dateKey(a)))})}
 if(kind==='builders'){
  const [br,allBest,liveBest,oldBuilders]=await Promise.all([read(s,S.builders),read(s,S.archive),read(s,S.best),archiveRows(s,historicalTabs.builders)]);
- const own=filter(builders(unionRows(br,oldBuilders)),{from,to});
+ const own=filter(uniqueEntries(builders(unionRows(br,oldBuilders))),{from,to});
  const historical=selections(allBest);const current=selections(liveBest);
  const known=new Set(historical.map(r=>[r.date,r.match,r.selection].join('|')));
  const best=filter([...historical,...current.filter(r=>!known.has([r.date,r.match,r.selection].join('|')))],{from,to});
@@ -33,7 +34,7 @@ if(kind==='builders'){
  }
 if(kind==='statistics'){
  const [sr,br,sel,arch,best,oldSr,oldBr,oldSel]=await Promise.all([read(s,S.strategy),read(s,S.builders),read(s,"'ДАННИ'!A2:J25000"),read(s,S.archive),read(s,S.best),archiveRows(s,historicalTabs.strategy),archiveRows(s,historicalTabs.builders),archiveRows(s,historicalTabs.data)]);
- const st=strategies(unionRows(sr,oldSr)),bu=builders(unionRows(br,oldBr));
+ const st=uniqueEntries(strategies(unionRows(sr,oldSr))),bu=uniqueEntries(builders(unionRows(br,oldBr)));
  const all=unionRows(sel,oldSel).filter(r=>txt(r[0])==='Селекция'&&valid(txt(r[1]))).map((r,i)=>({id:'a'+i,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),odds:num(r[5]),result:txt(r[7]),status:state(r[7]),pl:txt(r[8])===''?null:num(r[8])}));
  const historical=selections(arch),current=selections(best),existing=new Set(historical.map(r=>[r.date,r.match,r.selection].join('|')));
  const bestItems=[...historical,...current.filter(r=>!existing.has([r.date,r.match,r.selection].join('|')))];
