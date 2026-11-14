@@ -90,3 +90,22 @@ body{background:radial-gradient(ellipse at 50% -280px,#142b50,transparent 55%),#
 .ds11-fixtures,.ds11-strategy-overview{display:grid;gap:11px}.ds11-fixture{background:linear-gradient(135deg,#11263e,#0a192b);border:1px solid #203a55;border-radius:19px;overflow:hidden}.ds11-fixture .fixture-toggle{display:block;width:100%;text-align:left;padding:15px 17px;background:none;border:0;color:white}.ds11-fixture-top{display:flex;justify-content:space-between;gap:8px;color:#afc0d3;font-size:11px}.ds11-teams{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:15px 0}.ds11-team{display:flex;align-items:center;gap:10px;min-width:0;flex:1}.ds11-team:last-child{flex-direction:row-reverse;text-align:right}.ds11-team b{font-size:14px;line-height:1.25;overflow-wrap:anywhere}.ds11-vs{color:#7a91aa}.ds11-crest{width:43px;height:43px;flex:0 0 43px;border-radius:50%;display:grid;place-items:center;background:#132c47;border:1px solid #35628c;color:#92e5fa;font-size:11px;font-weight:800;overflow:hidden}.ds11-crest img{width:100%;height:100%;object-fit:contain;padding:2px}.ds11-fixture-picks{display:grid;gap:7px}.ds11-pick{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-size:12px}.ds11-pick-type{padding:5px 8px;border-radius:8px;background:#075037;color:#48f0a3;font-weight:800}.ds11-pick>b{margin-left:auto;padding:5px 10px;border:1px solid #168b61;background:#093a31;border-radius:8px;font-size:15px}.ds11-expand{margin-top:12px;font-size:11px;color:#7ed8ef;text-align:right}.ds11-fixture .status{font-size:10px}
 .ds11-strategy-overview button{border:1px solid #27425e;background:#0d2035;color:white;border-radius:13px;padding:12px;display:flex;align-items:center;gap:12px;text-align:left}.ds11-mini-code{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#12546a;font-weight:800}.ds11-strategy-overview button>span:nth-child(2){flex:1}.ds11-strategy-overview b,.ds11-strategy-overview small{display:block}.ds11-strategy-overview small{font-size:10px;color:#a8bad0}.ds11-strategy-overview strong{font-size:13px}
 @media(max-width:390px){.ds11-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ds11-kpi strong{font-size:21px}.ds11-team b{font-size:12px}.ds11-crest{width:34px;height:34px;flex-basis:34px}.ds11-daily-grid b{font-size:23px}.ds11-daily-grid span{font-size:10px}}
+
+/* V12: aligned betting rows, visible confidence, faithful performance chart */
+.ds11-fixture .fixture-toggle{padding:16px}
+.ds11-fixture-top{min-height:19px;align-items:center}
+.ds11-teams{display:grid;grid-template-columns:minmax(0,1fr) 18px minmax(0,1fr);gap:7px;min-height:62px}
+.ds11-team{display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;min-width:0}
+.ds11-team:last-child{grid-template-columns:minmax(0,1fr) 42px;direction:ltr}
+.ds11-team:last-child b{grid-column:1;grid-row:1;text-align:right}
+.ds11-team:last-child .ds11-crest{grid-column:2;grid-row:1}
+.ds11-team b{overflow-wrap:anywhere;font-size:13px}
+.ds11-fixture-picks{gap:8px}
+.ds11-pick{display:grid;grid-template-columns:54px minmax(0,1fr) 58px 76px;align-items:center;gap:7px;min-height:48px;border:1px solid #214059;border-radius:11px;padding:6px;background:#081b2d}
+.ds11-pick-type{width:54px;min-height:32px;display:grid;place-items:center;padding:3px;border:1px solid #128c67;background:#073f32;color:#49f2b0;font-size:12px;font-weight:900}
+.ds11-pick>span:nth-child(2){line-height:1.3;font-size:12px;font-weight:650;overflow-wrap:anywhere}
+.ds11-pick>b{width:58px;text-align:center;margin:0;padding:7px 3px}
+.ds11-pick .status{width:76px;text-align:center;padding:7px 2px;font-size:9px}
+.ds11-crest{background:#0b2946}
+.ds11-chart-panel .chart-box svg{height:175px;filter:drop-shadow(0 0 6px #20eaa044)}
+@media(max-width:420px){.ds11-pick{grid-template-columns:45px minmax(0,1fr) 49px 65px;gap:5px;padding:5px}.ds11-pick-type{width:45px;font-size:10px}.ds11-pick>b{width:49px;font-size:12px}.ds11-pick .status{width:65px;font-size:8px}.ds11-team{grid-template-columns:33px minmax(0,1fr)}.ds11-team:last-child{grid-template-columns:minmax(0,1fr) 33px}.ds11-team b{font-size:11px}}
