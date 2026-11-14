@@ -25,13 +25,13 @@ let crestManifestPromise=null;
 function teamNames(name){return String(name||'').split(/\s+(?:–|—|-|vs\.?|v\.)\s+/i).map(x=>x.trim()).filter(Boolean).slice(0,2)}
 function crestHTML(team,league){const flag=dsNationalFlag(team,league);return '<span class="ds11-crest'+(flag?' ds15-national':'')+'" data-team="'+esc(team)+'" data-national="'+(flag?'1':'0')+'"><span>'+(flag||esc(team.slice(0,2).toUpperCase()))+'</span></span>'}
 const crestLookupCache=new Map();
-function crestLookup(team){const key=team.trim().toLowerCase();if(crestLookupCache.has(key))return crestLookupCache.get(key);const task=(async()=>{try{const cached=localStorage.getItem('ds-crest:'+key);if(cached)return cached}catch(e){}try{const r=await fetch('/api/crests?team='+encodeURIComponent(team));if(!r.ok)return null;const d=await r.json();if(d.url){try{localStorage.setItem('ds-crest:'+key,d.url)}catch(e){}return d.url}}catch(e){}return null})();crestLookupCache.set(key,task);return task}
+function crestLookup(team,country){const key=(team+'|'+(country||'')).trim().toLowerCase();if(crestLookupCache.has(key))return crestLookupCache.get(key);const task=(async()=>{try{const cached=localStorage.getItem('ds-crest-v16:'+key);if(cached)return cached}catch(e){}try{const r=await fetch('/api/crests?team='+encodeURIComponent(team)+'&country='+encodeURIComponent(country||''));if(!r.ok)return null;const d=await r.json();if(d.url){try{localStorage.setItem('ds-crest-v16:'+key,d.url)}catch(e){}return d.url}}catch(e){}return null})();crestLookupCache.set(key,task);return task}
 function hydrateCrests(){
  const els=[...document.querySelectorAll('.ds11-crest[data-team]:not([data-national="1"])')];if(!els.length)return;
  if(!crestManifestPromise)crestManifestPromise=fetch('/crests/manifest.json?v=140').then(r=>r.ok?r.json():{}).catch(()=>({}));
  crestManifestPromise.then(map=>{const names=[...new Set(els.map(el=>el.dataset.team))];for(const name of names){
   const targets=els.filter(el=>el.dataset.team===name);const key=name.toLowerCase();
-  Promise.resolve(map[key]||crestLookup(name)).then(src=>{if(!src)return;for(const el of targets){if(!el.isConnected)return;const img=document.createElement('img');img.src=src;img.alt='Емблема '+name;img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();el.classList.remove('has-crest')};el.replaceChildren(img);el.classList.add('has-crest')}})
+  Promise.resolve(map[key]||crestLookup(name,targets[0]?.dataset.country)).then(src=>{if(!src)return;for(const el of targets){if(!el.isConnected)return;const img=document.createElement('img');img.src=src;img.alt='Емблема '+name;img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{img.remove();el.classList.remove('has-crest')};el.replaceChildren(img);el.classList.add('has-crest')}})
  }})
 }
 function confidence(p){const m=String(p.level||'').match(/(?:^|\D)(10|[1-9])\s*\/\s*10/);return m?m[1]+'/10':'—'}
