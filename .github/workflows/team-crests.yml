@@ -1,0 +1,24 @@
+name: Update team crests
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 2 * * 1'
+permissions:
+  contents: write
+jobs:
+  badges:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Download and verify football crests
+        run: python scripts/download-crests.py
+      - name: Commit badge images and manifest
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/crests/
+          git diff --cached --quiet || (git commit -m "assets: cache verified football club crests" && git push)
