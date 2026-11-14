@@ -164,3 +164,15 @@ body{background:radial-gradient(ellipse at 50% -200px,#0e2140,transparent 65%),#
 .proposal-icon.ds14-luxe-symbol{font-size:30px}
 .ds11-crest.has-crest{border:0;background:transparent;box-shadow:none;overflow:visible}
 .ds11-crest.has-crest img{padding:0;object-fit:contain;filter:drop-shadow(0 2px 5px #0009)}
+
+/* V15 — full accumulator slips, country/league headers, national flags */
+.ds15-builder{border:1px solid #83633d;border-radius:20px;overflow:hidden;background:linear-gradient(145deg,#152338,#0b1729);margin:0 0 17px;box-shadow:0 10px 28px #0006}
+.ds15-builder-head{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid #34425a;background:linear-gradient(105deg,#31251f,#211d33)}
+.ds15-builder-head .ds14-luxe-symbol{font-size:30px}
+.ds15-builder-head>div{flex:1;min-width:0}.ds15-builder-head strong{display:block;color:#ffe3aa;font-size:16px}.ds15-builder-head small{display:block;color:#b5b9c9;font-size:11px;margin-top:3px}
+.ds15-builder-status{font-size:10px;font-weight:800;white-space:nowrap;border-radius:10px;padding:6px 8px;border:1px solid #536174;color:#bfcad8}
+.ds15-builder-status.win{border-color:#1b9b68;color:#3af3a1;background:#063d2d}.ds15-builder-status.loss{border-color:#b84659;color:#ff8997;background:#451e2b}.ds15-builder-status.void{border-color:#bd9549;color:#f4d49b;background:#433621}
+.ds15-league{padding:0 14px}.ds15-league+.ds15-league{border-top:1px solid #29405a}.ds15-league-title{font-size:12px;font-weight:800;color:#7fdbef;letter-spacing:.15px;padding:13px 0 8px}
+.ds15-leg{padding:10px 0 13px;border-top:1px solid #26384e}.ds15-leg:first-of-type{border-top:0}.ds15-leg-match{font-size:14px;font-weight:800;color:#fff;line-height:1.4}.ds15-leg-bottom{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:7px}.ds15-leg-bottom span{color:#c1d3e6;font-size:12px}.ds15-leg-bottom b{font-size:15px;color:#68ffc0;border:1px solid #24785e;background:#07392f;padding:5px 9px;border-radius:9px;white-space:nowrap}
+.ds15-builder-total{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:15px 16px;background:linear-gradient(100deg,#123e39,#17313a);border-top:1px solid #267964}.ds15-builder-total>span{font-size:13px;font-weight:800;color:#e5fff5}.ds15-builder-total small{display:block;font-size:10px;color:#9cbdaf;font-weight:400}.ds15-builder-total strong{font-size:25px;font-weight:900;color:#59ffb2;font-variant-numeric:tabular-nums}
+.ds11-crest.ds15-national{border:0;background:transparent;overflow:visible;font-size:32px;box-shadow:none}.ds11-crest.ds15-national span{line-height:1}
