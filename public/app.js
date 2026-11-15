@@ -16,7 +16,7 @@ function summaryCard(label,value,ic,cl=''){return `<div class="metric ${cl}"><di
 function statCards(x){return `<div class="metrics">${summaryCard('Печалба',signed(x.profit)+' u','↗',color(x.profit))}${summaryCard('Yield',signed(x.yield)+'%','▥',color(x.yield))}${summaryCard('Успеваемост',fmt(x.wr)+'%','◎')}${summaryCard('Залози',fmt(x.count),'▱')}</div>`}
 function section(title,action=''){return `<div class="section-head"><h2>${title}</h2>${action}</div>`}
 function empty(msg){return `<div class="empty"><div class="empty-icon">◇</div><b>Няма намерени записи</b><p>${esc(msg)}</p></div>`}
-function nav(t){state.tab=t;window.scrollTo({top:0,behavior:'smooth'});render()}
+function nav(t){if(t==='statistics'&&state.tab!==t&&state.statDataSource==='oracle')state.mode='all';state.tab=t;window.scrollTo({top:0,behavior:'smooth'});render()}
 function bindLinks(){document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>nav(b.dataset.goto))}
 function strategyBadge(k){return `<span class="strategy-badge b-${k.replace(/\d/g,'')}">${esc(k)}</span>`}
 function listStats(x){return `<div class="mini-stats"><span><b>${fmt(x.count)}</b> селекции</span><span><b>${fmt(x.wr)}%</b> WR</span><span class="${color(x.profit)}"><b>${signed(x.profit)}u</b> P/L</span></div>`}
