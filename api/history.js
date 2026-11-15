@@ -9,16 +9,11 @@ export default async function handler(req,res){
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
  if(!access(req,res))return;
  const kind=String(req.query.kind||'matches');
- if(!['matches','selections','odds'].includes(kind))return res.status(400).json({error:'Invalid kind'});
+ if(!['matches','selections','best','odds'].includes(kind))return res.status(400).json({error:'Invalid kind'});
  const limit=Number(req.query.limit??50),offset=Number(req.query.offset??0);
  if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0||offset>1000000)return res.status(400).json({error:'Invalid pagination'});
  const from=String(req.query.from||''),to=String(req.query.to||'');
  if((from&&!/^\d{4}-\d{2}-\d{2}$/.test(from))||(to&&!/^\d{4}-\d{2}-\d{2}$/.test(to)))return res.status(400).json({error:'Invalid dates'});
- const cfg={
-  matches:{table:'ADMIN.DS_MATCHES',columns:"MATCH_ID, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, LEAGUE, HOME_TEAM, AWAY_TEAM, MATCH_LABEL, FINAL_SCORE",order:'MATCH_DATE DESC, MATCH_ID'},
-  selections:{table:'ADMIN.DS_SELECTIONS',columns:"SELECTION_ID, MATCH_ID, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, SELECTION_LABEL, ODDS, LEVEL_LABEL, RESULT_LABEL, RESULT_STATUS, PROFIT_UNITS",order:'MATCH_DATE DESC, SELECTION_ID'},
-  odds:{table:'ADMIN.DS_ODDS_DAILY_LEGACY',columns:"TO_CHAR(OBSERVED_DATE,'YYYY-MM-DD') AS OBSERVED_DATE, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, MATCH_LABEL, LEAGUE, SELECTION_LABEL, DECIMAL_ODDS, CONFIDENCE_LABEL",order:'MATCH_DATE DESC, OBSERVED_DATE DESC, OBSERVATION_ID'}
- }[kind];
  const binds={rowOffset:offset,rowLimit:limit},where=[];
  if(from){where.push("MATCH_DATE>=TO_DATE(:fromDay,'YYYY-MM-DD')");binds.fromDay=from}
  if(to){where.push("MATCH_DATE<TO_DATE(:toDay,'YYYY-MM-DD')+1");binds.toDay=to}
@@ -27,7 +22,28 @@ export default async function handler(req,res){
   directory=await mkdtemp(join(tmpdir(),'deepstats-wallet-'));
   await writeFile(join(directory,'ewallet.pem'),process.env.ORACLE_WALLET_PEM,{mode:0o600});
   connection=await oracledb.getConnection({user:process.env.ORACLE_USER,password:process.env.ORACLE_PASSWORD,connectString:process.env.ORACLE_CONNECT_STRING,walletLocation:directory,walletPassword:process.env.ORACLE_WALLET_PASSWORD});
-  const sql=`SELECT ${cfg.columns} FROM ${cfg.table}${where.length?' WHERE '+where.join(' AND '):''} ORDER BY ${cfg.order} OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
+  const filter=where.length?' WHERE '+where.join(' AND '):'';
+  let sql;
+  if(kind==='matches'){
+   // Full and Best imports can have distinct database IDs for the same real match.
+   sql=`SELECT MATCH_ID, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, LEAGUE, HOME_TEAM, AWAY_TEAM, MATCH_LABEL, FINAL_SCORE FROM (
+    SELECT m.*, ROW_NUMBER() OVER(PARTITION BY MATCH_DATE, TRIM(MATCH_LABEL) ORDER BY CASE WHEN MATCH_ID LIKE 'full:%' THEN 0 ELSE 1 END, MATCH_ID) AS RN
+    FROM ADMIN.DS_MATCHES m${filter}
+   ) WHERE RN=1 ORDER BY MATCH_DATE DESC,MATCH_LABEL OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
+  }else if(kind==='selections'||kind==='best'){
+   // One canonical row per dated match + selection, while preserving its Best membership.
+   const bestOnly=kind==='best'?' AND IS_BEST=1':'';
+   sql=`WITH source_rows AS (
+    SELECT s.SELECTION_ID,s.MATCH_ID,s.MATCH_DATE,s.SELECTION_LABEL,s.ODDS,s.LEVEL_LABEL,s.RESULT_LABEL,s.RESULT_STATUS,s.PROFIT_UNITS,s.SOURCE_TYPE,m.MATCH_LABEL,m.LEAGUE,
+    ROW_NUMBER() OVER(PARTITION BY s.MATCH_DATE,TRIM(m.MATCH_LABEL),TRIM(s.SELECTION_LABEL) ORDER BY CASE WHEN s.SOURCE_TYPE='FULL' THEN 0 WHEN s.SOURCE_TYPE='BEST' THEN 1 ELSE 2 END,s.SELECTION_ID) AS RN,
+    MAX(CASE WHEN s.SOURCE_TYPE='BEST' THEN 1 ELSE 0 END) OVER(PARTITION BY s.MATCH_DATE,TRIM(m.MATCH_LABEL),TRIM(s.SELECTION_LABEL)) AS IS_BEST
+    FROM ADMIN.DS_SELECTIONS s JOIN ADMIN.DS_MATCHES m ON m.MATCH_ID=s.MATCH_ID${filter}
+   )
+   SELECT SELECTION_ID,MATCH_ID,TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE,MATCH_LABEL,LEAGUE,SELECTION_LABEL,ODDS,LEVEL_LABEL,RESULT_LABEL,RESULT_STATUS,PROFIT_UNITS,IS_BEST
+   FROM source_rows WHERE RN=1${bestOnly} ORDER BY MATCH_DATE DESC,MATCH_LABEL,SELECTION_LABEL OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
+  }else{
+   sql=`SELECT TO_CHAR(OBSERVED_DATE,'YYYY-MM-DD') AS OBSERVED_DATE, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, MATCH_LABEL, LEAGUE, SELECTION_LABEL, DECIMAL_ODDS, CONFIDENCE_LABEL FROM ADMIN.DS_ODDS_DAILY_LEGACY${filter} ORDER BY MATCH_DATE DESC, OBSERVED_DATE DESC, OBSERVATION_ID OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
+  }
   const result=await connection.execute(sql,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT});
   return res.status(200).json({source:'oracle',kind,offset,limit,items:result.rows,hasMore:result.rows.length===limit});
  }catch(e){console.error('Public archive read',e.code||'READ_FAILED');return res.status(503).json({error:'Архивът временно не е достъпен.'})}
