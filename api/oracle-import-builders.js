@@ -59,7 +59,12 @@ function build(best,own,today){
   const id='recorded:'+hash(day+'|'+match+'|'+description+'|'+(i+1));
   builders.push({id,day,type:'RECORDED',odds,st,profit,raw:JSON.stringify({source:'ДАННИ',row:i+1,description,declaredLegs:count,parsedLegs:legLabels.length,hasLegOdds:false}),legs});
  }
- return {builders,invalid,bestCount:grouped.size,recordedCount:builders.filter(x=>x.type==='RECORDED').length,legCount:builders.reduce((s,x)=>s+x.legs.length,0)};
+ const bestLegs=[...grouped.values()].flat();
+ const bestSinglesProfit=bestLegs.reduce((n,r)=>n+(r.status==='win'?r.odds-1:r.status==='loss'?-1:0),0);
+ const bestSinglesStats={count:bestLegs.length,wins:bestLegs.filter(x=>x.status==='win').length,losses:bestLegs.filter(x=>x.status==='loss').length,voids:bestLegs.filter(x=>x.status==='void').length,pending:bestLegs.filter(x=>x.status==='pending').length,profit:Number(bestSinglesProfit.toFixed(4))};
+ const proposalRows=builders.filter(x=>x.type==='BEST_PROPOSAL');
+ const bestBuildersStats={count:proposalRows.length,wins:proposalRows.filter(x=>x.st==='win').length,losses:proposalRows.filter(x=>x.st==='loss').length,voids:proposalRows.filter(x=>x.st==='void').length,pending:proposalRows.filter(x=>x.st==='pending').length,profit:Number(proposalRows.reduce((n,x)=>n+(x.profit??0),0).toFixed(4))};
+ return {builders,invalid,bestCount:grouped.size,recordedCount:builders.filter(x=>x.type==='RECORDED').length,legCount:builders.reduce((s,x)=>s+x.legs.length,0),bestSinglesStats,bestBuildersStats};
 }
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
@@ -72,7 +77,7 @@ export default async function handler(req,res){
   [best,own]=await Promise.all([read(s,"'АРХИВ BEST'!A1:L25000"),read(s,"'ДАННИ'!L1:U25000")]);
  }catch(e){console.error('Builder source read',e.code||'FAILED');return res.status(503).json({errorCode:'SHEETS_READ_FAILED'})}
  const data=build(best,own,today);
- if(req.method==='GET')return res.status(200).json({source:'АРХИВ BEST + ДАННИ',historicalBuilders:data.builders.length,bestProposals:data.bestCount,recordedBuilders:data.recordedCount,builderLegs:data.legCount,invalid:data.invalid.length,invalidRows:data.invalid.slice(0,10)});
+ if(req.method==='GET')return res.status(200).json({source:'АРХИВ BEST + ДАННИ',historicalBuilders:data.builders.length,bestProposals:data.bestCount,recordedBuilders:data.recordedCount,builderLegs:data.legCount,bestSinglesStats:data.bestSinglesStats,bestBuildersStats:data.bestBuildersStats,invalid:data.invalid.length,invalidRows:data.invalid.slice(0,10)});
  if(req.body?.confirm!=='IMPORT_BUILDERS')return res.status(400).json({error:'Confirmation required'});
  if(data.invalid.length)return res.status(409).json({errorCode:'INVALID_BUILDER_ROWS',invalidRows:data.invalid.slice(0,10)});
  const offset=req.body?.offset;
