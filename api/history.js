@@ -74,8 +74,8 @@ export default async function handler(req,res){
   }else{
    sql=`SELECT TO_CHAR(OBSERVED_DATE,'YYYY-MM-DD') AS OBSERVED_DATE, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, MATCH_LABEL, LEAGUE, SELECTION_LABEL, DECIMAL_ODDS, CONFIDENCE_LABEL FROM ADMIN.DS_ODDS_DAILY_LEGACY${filter} ORDER BY MATCH_DATE DESC, OBSERVED_DATE DESC, OBSERVATION_ID OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
   }
-  const result=await connection.execute(sql,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT});
-  return res.status(200).json({source:'oracle',kind,offset,limit,items:result.rows,hasMore:result.rows.length===limit});
+  const result=await connection.execute(sql,{...binds,rowLimit:limit+1},{outFormat:oracledb.OUT_FORMAT_OBJECT});
+  return res.status(200).json({source:'oracle',kind,offset,limit,items:result.rows.slice(0,limit),hasMore:result.rows.length>limit});
  }catch(e){console.error('Public archive read',e.code||'READ_FAILED');return res.status(503).json({error:'Архивът временно не е достъпен.'})}
  finally{if(connection)try{await connection.close()}catch{}if(directory)try{await rm(directory,{recursive:true,force:true})}catch{}}
 }
