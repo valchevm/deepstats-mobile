@@ -46,6 +46,17 @@ while(fullOffset<full.historicalSelections){
  fullOffset=result.nextOffset;
  console.log('Full selections '+fullOffset+'/'+full.historicalSelections);
 }
+const strategy=await retry('/api/oracle-import-strategies');
+if(strategy.unmatched)throw Error('Unmatched historical strategy rows: '+JSON.stringify(strategy.unmatchedRows));
+console.log('Strategy rows eligible: '+strategy.historicalSelectedRows+'; memberships: '+strategy.expectedLinks);
+let strategyOffset=0,strategyLinksProcessed=0;
+while(strategyOffset<strategy.historicalSelectedRows){
+ const result=await retry('/api/oracle-import-strategies',{confirm:'IMPORT_STRATEGY_LINKS',offset:strategyOffset});
+ if(!Number.isInteger(result.nextOffset)||result.nextOffset<=strategyOffset||result.processed<1)throw Error('Invalid strategy batch at '+strategyOffset);
+ strategyOffset=result.nextOffset;strategyLinksProcessed+=result.linksProcessed;
+ console.log('Strategy rows '+strategyOffset+'/'+strategy.historicalSelectedRows);
+}
+if(strategyLinksProcessed!==strategy.expectedLinks)throw Error('Strategy links processed '+strategyLinksProcessed+' expected '+strategy.expectedLinks);
 const best=await retry('/api/oracle-import-best',{confirm:'IMPORT_ARCHIVE_BEST'});
 console.log('Best archive import:',JSON.stringify(best));
 const summary=await retry('/api/oracle-archive?kind=summary');
@@ -54,6 +65,11 @@ const fullStored=Number((summary.selectionSources||[]).find(x=>x.SOURCE_TYPE==='
 const bestStored=Number((summary.selectionSources||[]).find(x=>x.SOURCE_TYPE==='BEST')?.TOTAL||0);
 if(fullStored!==full.historicalSelections)throw Error('FULL mismatch: source '+full.historicalSelections+' / Oracle '+fullStored);
 if(bestStored<best.importedSelections)throw Error('BEST mismatch: source '+best.importedSelections+' / Oracle '+bestStored);
+const countsByStrategy=new Map((summary.strategyCounts||[]).map(x=>[x.STRATEGY_ID,Number(x.TOTAL)]));
+for(const [key,count] of Object.entries(strategy.counts)){
+ if(countsByStrategy.get(key)!==count)throw Error('Strategy '+key+' count mismatch: source '+count+' / Oracle '+(countsByStrategy.get(key)||0));
+}
+if(Number(summary.strategyLinks)!==strategy.expectedLinks)throw Error('Strategy membership mismatch: source '+strategy.expectedLinks+' / Oracle '+summary.strategyLinks);
 console.log('AUDIT FULL '+fullStored+'/'+full.historicalSelections+'; BEST '+bestStored+'/'+best.importedSelections+'; ODDS '+summary.legacyOdds+'/'+preview.historicalObservations+'; BUILDERS '+summary.builders+'; BUILDER LEGS '+summary.builderLegs);
 
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
