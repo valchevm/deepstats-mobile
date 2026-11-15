@@ -44,18 +44,21 @@ export default async function handler(req,res){
  const {records,invalid}=parse(values,today);
  if(req.method==='GET')return res.status(200).json({mode:'preview',source:'ИСТОРИЯ КОЕФ.',historicalObservations:records.length,invalidRows:invalid.length,invalidRowNumbers:invalid.slice(0,20),timestampPrecision:'date-only',sourceUnchanged:true});
  if(req.body?.confirm!=='IMPORT_LEGACY_ODDS')return res.status(400).json({error:'Confirmation required'});
+ const offset=req.body?.offset;
+ if(!Number.isInteger(offset)||offset<0||offset>records.length)return res.status(400).json({error:'Valid integer offset required'});
+ const batch=records.slice(offset,offset+20);
  if(invalid.length)return res.status(409).json({errorCode:'INVALID_SOURCE_ROWS',invalidRows:invalid.length,invalidRowNumbers:invalid.slice(0,20)});
  let directory,connection;
  try{
   directory=await mkdtemp(join(tmpdir(),'deepstats-wallet-'));
   await writeFile(join(directory,'ewallet.pem'),process.env.ORACLE_WALLET_PEM,{mode:0o600});
   connection=await oracledb.getConnection({user:process.env.ORACLE_USER,password:process.env.ORACLE_PASSWORD,connectString:process.env.ORACLE_CONNECT_STRING,walletLocation:directory,walletPassword:process.env.ORACLE_WALLET_PASSWORD});
-  for(const x of records){
+  for(const x of batch){
    await connection.execute(`MERGE INTO ADMIN.DS_ODDS_DAILY_LEGACY t USING (SELECT :obsId k FROM dual) s ON (t.OBSERVATION_ID=s.k) WHEN NOT MATCHED THEN INSERT (OBSERVATION_ID,OBSERVED_DATE,MATCH_DATE,MATCH_LABEL,LEAGUE,KICKOFF_LOCAL,SELECTION_LABEL,DECIMAL_ODDS,CONFIDENCE_LABEL,SOURCE_SELECTION_ID,SOURCE_ROW) VALUES (:obsId2,TO_DATE(:observed,'YYYY-MM-DD'),TO_DATE(:matchDay,'YYYY-MM-DD'),:matchLabel,:league,:kickoff,:selectionLabel,:odds,:confidence,:sourceId,:sourceRow)`,{obsId:x.id,obsId2:x.id,observed:x.observed,matchDay:x.matchDay,matchLabel:x.match,league:x.league,kickoff:x.kickoff,selectionLabel:x.selection,odds:x.odds,confidence:x.confidence,sourceId:x.sourceId,sourceRow:x.sourceRow});
   }
   const count=await connection.execute('SELECT COUNT(*) FROM ADMIN.DS_ODDS_DAILY_LEGACY');
   await connection.commit();
-  return res.status(200).json({processed:records.length,totalStored:Number(count.rows?.[0]?.[0]||0),timestampPrecision:'date-only',sourceUnchanged:true});
+  return res.status(200).json({processed:batch.length,offset,nextOffset:offset+batch.length,remaining:Math.max(0,records.length-offset-batch.length),totalStored:Number(count.rows?.[0]?.[0]||0),timestampPrecision:'date-only',sourceUnchanged:true});
  }catch(e){if(connection)try{await connection.rollback()}catch{}console.error('Legacy odds import',e.code||'IMPORT_FAILED');return res.status(503).json({errorCode:e.code||'IMPORT_FAILED',sourceUnchanged:true})}
  finally{if(connection)try{await connection.close()}catch{}if(directory)try{await rm(directory,{recursive:true,force:true})}catch{}}
 }
