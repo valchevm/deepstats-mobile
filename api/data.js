@@ -1,4 +1,11 @@
 import {access,sheets,read,readFrom,ARCHIVE_ID,ID} from './_sheets.js';
+import {timingSafeEqual} from 'node:crypto';
+function authorizedAdmin(req){
+ const expected=process.env.ADMIN_ACCESS_TOKEN||'';
+ const supplied=String(req.headers.authorization||'').replace(/^Bearer /,'');
+ const a=Buffer.from(supplied),b=Buffer.from(expected);
+ return !!expected&&!!supplied&&a.length===b.length&&timingSafeEqual(a,b);
+}
 const S={selections:"'СЕЛЕКЦИИ'!A11:O25000",best:"'СЕЛЕКЦИИ'!A3:O8",strategy:"'СТРАТЕГИИ_ДАННИ'!A2:X25000",builders:"'ДАННИ'!L2:U25000",archive:"'АРХИВ BEST'!A2:L25000",summary:"'СТАТИСТИКА'!A5:F22"};
 const txt=v=>String(v??'').trim();const num=v=>Number(txt(v).replace(/\s/g,'').replace(',','.').replace(/[^0-9.+-]/g,''))||0;
 const valid=d=>/^\d{2}\.\d{2}\.\d{4}$/.test(d);
@@ -18,7 +25,7 @@ async function archiveRows(s,tab){try{const rows=await readFrom(s,ARCHIVE_ID,"'"
 function unionRows(current,historical){const seen=new Set();return [...current,...historical].filter(r=>{const key=JSON.stringify(r);if(seen.has(key))return false;seen.add(key);return true})}
 function uniqueEntries(rows){const seen=new Set();return rows.filter(r=>{const key=[r.date,r.match,r.selection,r.odds,r.result].join('|');if(seen.has(key))return false;seen.add(key);return true})}
 const send=(res,data)=>{res.setHeader('Cache-Control','private, no-store');return res.json(data)};
-export default async function handler(req,res){if(req.method!=='GET')return res.status(405).end();if(!access(req,res))return;try{
+export default async function handler(req,res){if(req.method!=='GET')return res.status(405).end();if(!authorizedAdmin(req)&&!access(req,res))return;try{
 const kind=txt(req.query.kind||'dashboard');const from=txt(req.query.from||req.query.date),to=txt(req.query.to||req.query.date);if((from&&!valid(from))||(to&&!valid(to)))return res.status(400).json({error:'Невалидна дата.'});const s=await sheets();
 if(kind==='dashboard'){const [stat,best,summary]=await Promise.all([read(s,S.summary),read(s,S.best),read(s,"'ДНЕВЕН ЦЕНТЪР'!M3:Q10")]);const metrics={};stat.forEach(r=>{if(r[0])metrics[txt(r[0])]={selections:txt(r[1]),builders:txt(r[3]),total:txt(r[5])}});return send(res,{metrics,best:selections(best),strategySummary:summary.map((r,i)=>({key:keys[i],name:strategyNames[keys[i]],count:num(r[1]),settled:num(r[2]),profit:num(r[3]),yield:num(r[4])})),updatedAt:new Date().toISOString()})}
 if(kind==='matches'){const [main,best,old]=await Promise.all([read(s,S.selections),read(s,S.best),archiveRows(s,historicalTabs.selections)]);const a=uniqueEntries(selections(unionRows(main,old))),b=selections(best);const ids=new Set(a.map(p=>[p.date,p.match,p.selection].join('|')));const merged=[...a,...b.filter(p=>!ids.has([p.date,p.match,p.selection].join('|')))];return send(res,{items:filter(merged,{from,to}),count:merged.length})}
