@@ -50,6 +50,11 @@ const best=await retry('/api/oracle-import-best',{confirm:'IMPORT_ARCHIVE_BEST'}
 console.log('Best archive import:',JSON.stringify(best));
 const summary=await retry('/api/oracle-archive?kind=summary');
 console.log('Verified Oracle totals:',JSON.stringify(summary));
-if(summary.selections<full.historicalSelections)throw Error('Oracle selections below full source count');
+const fullStored=Number((summary.selectionSources||[]).find(x=>x.SOURCE_TYPE==='FULL')?.TOTAL||0);
+const bestStored=Number((summary.selectionSources||[]).find(x=>x.SOURCE_TYPE==='BEST')?.TOTAL||0);
+if(fullStored!==full.historicalSelections)throw Error('FULL mismatch: source '+full.historicalSelections+' / Oracle '+fullStored);
+if(bestStored<best.importedSelections)throw Error('BEST mismatch: source '+best.importedSelections+' / Oracle '+bestStored);
+console.log('AUDIT FULL '+fullStored+'/'+full.historicalSelections+'; BEST '+bestStored+'/'+best.importedSelections+'; ODDS '+summary.legacyOdds+'/'+preview.historicalObservations+'; BUILDERS '+summary.builders+'; BUILDER LEGS '+summary.builderLegs);
+
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
 console.log('DAILY ARCHIVE SUCCESS');
