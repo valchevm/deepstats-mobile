@@ -85,5 +85,16 @@ console.log('AUDIT FULL '+fullStored+'/'+full.historicalSelections+'; BEST '+bes
 
 if(Number(summary.builders)!==builderPreview.historicalBuilders)throw Error('Builder count mismatch: '+summary.builders+'/'+builderPreview.historicalBuilders);
 if(Number(summary.builderLegs)!==builderPreview.builderLegs)throw Error('Builder leg count mismatch: '+summary.builderLegs+'/'+builderPreview.builderLegs);
+// Verify real performance metrics against independently calculated Google Sheets
+// source data. Do not call the archival job successful on a count-only match.
+for(const [source,expected] of [['best',builderPreview.bestSinglesStats],['bestBuilders',builderPreview.bestBuildersStats]]){
+ const actual=(await retry('/api/oracle-stats?sources='+source)).selected;
+ if(!actual||!expected)throw Error('Missing audit figures for '+source);
+ for(const field of ['count','wins','losses','voids','pending']){
+  if(Number(actual[field])!==Number(expected[field]))throw Error('Audit mismatch '+source+'.'+field+': Oracle '+actual[field]+' / Sheet '+expected[field]);
+ }
+ if(Math.abs(Number(actual.profit)-Number(expected.profit))>0.01)throw Error('Audit mismatch '+source+'.profit: Oracle '+actual.profit+' / Sheet '+expected.profit);
+ console.log('VERIFIED PERFORMANCE '+source+': '+JSON.stringify({count:actual.count,wins:actual.wins,losses:actual.losses,voids:actual.voids,pending:actual.pending,profit:actual.profit,yield:actual.yield}));
+}
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
 console.log('DAILY ARCHIVE SUCCESS');
