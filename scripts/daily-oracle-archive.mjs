@@ -96,5 +96,13 @@ for(const [source,expected] of [['best',builderPreview.bestSinglesStats],['bestB
  if(Math.abs(Number(actual.profit)-Number(expected.profit))>0.01)throw Error('Audit mismatch '+source+'.profit: Oracle '+actual.profit+' / Sheet '+expected.profit);
  console.log('VERIFIED PERFORMANCE '+source+': '+JSON.stringify({count:actual.count,wins:actual.wins,losses:actual.losses,voids:actual.voids,pending:actual.pending,profit:actual.profit,yield:actual.yield}));
 }
+// Smoke-test each authenticated archive view; a successful data import should
+// also imply that the mobile application can read its historical sections.
+for(const kind of ['matches','selections','best','strategies','builders','builderlegs','odds']){
+ const result=await retry('/api/history?kind='+encodeURIComponent(kind)+'&limit=2');
+ if(result.kind!==kind||!Array.isArray(result.items))throw Error('History API returned invalid payload for '+kind);
+ if(result.items.length===0)throw Error('History API returned no records for '+kind);
+ console.log('ARCHIVE VIEW OK '+kind+': '+result.items.length+' sample rows');
+}
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
 console.log('DAILY ARCHIVE SUCCESS');
