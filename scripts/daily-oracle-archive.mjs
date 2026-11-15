@@ -59,6 +59,17 @@ while(strategyOffset<strategy.historicalSelectedRows){
 if(strategyLinksProcessed!==strategy.expectedLinks)throw Error('Strategy links processed '+strategyLinksProcessed+' expected '+strategy.expectedLinks);
 const best=await retry('/api/oracle-import-best',{confirm:'IMPORT_ARCHIVE_BEST'});
 console.log('Best archive import:',JSON.stringify(best));
+const builderPreview=await retry('/api/oracle-import-builders');
+if(builderPreview.invalid)throw Error('Invalid builder source rows: '+JSON.stringify(builderPreview.invalidRows));
+console.log('Builders eligible: '+builderPreview.historicalBuilders+'; Best proposals: '+builderPreview.bestProposals+'; recorded: '+builderPreview.recordedBuilders+'; legs: '+builderPreview.builderLegs);
+let builderOffset=0,builderLegsProcessed=0;
+while(builderOffset<builderPreview.historicalBuilders){
+ const result=await retry('/api/oracle-import-builders',{confirm:'IMPORT_BUILDERS',offset:builderOffset});
+ if(!Number.isInteger(result.nextOffset)||result.nextOffset<=builderOffset||result.processed<1)throw Error('Invalid builder batch at '+builderOffset);
+ builderOffset=result.nextOffset;builderLegsProcessed+=result.legsProcessed;
+ console.log('Builders '+builderOffset+'/'+builderPreview.historicalBuilders);
+}
+if(builderLegsProcessed!==builderPreview.builderLegs)throw Error('Builder leg processing mismatch: '+builderLegsProcessed+'/'+builderPreview.builderLegs);
 const summary=await retry('/api/oracle-archive?kind=summary');
 console.log('Verified Oracle totals:',JSON.stringify(summary));
 const fullStored=Number((summary.selectionSources||[]).find(x=>x.SOURCE_TYPE==='FULL')?.TOTAL||0);
@@ -72,5 +83,7 @@ for(const [key,count] of Object.entries(strategy.counts)){
 if(Number(summary.strategyLinks)!==strategy.expectedLinks)throw Error('Strategy membership mismatch: source '+strategy.expectedLinks+' / Oracle '+summary.strategyLinks);
 console.log('AUDIT FULL '+fullStored+'/'+full.historicalSelections+'; BEST '+bestStored+'/'+best.importedSelections+'; ODDS '+summary.legacyOdds+'/'+preview.historicalObservations+'; BUILDERS '+summary.builders+'; BUILDER LEGS '+summary.builderLegs);
 
+if(Number(summary.builders)!==builderPreview.historicalBuilders)throw Error('Builder count mismatch: '+summary.builders+'/'+builderPreview.historicalBuilders);
+if(Number(summary.builderLegs)!==builderPreview.builderLegs)throw Error('Builder leg count mismatch: '+summary.builderLegs+'/'+builderPreview.builderLegs);
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
 console.log('DAILY ARCHIVE SUCCESS');
