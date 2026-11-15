@@ -1,0 +1,23 @@
+ID,Priority,Area,Status,Verified_from,Current_state,Next_action,Acceptance_criteria,Owner,Last_reviewed
+P0-01,P0,Oracle infrastructure,UNVERIFIED,api/oracle-archive.js,Oracle connection code exists; runtime not checked,Check Always Free status schema credentials connectivity without revealing secrets,Successful protected summary and table inspection,AI+owner,2026-11-15
+P0-02,P0,Backups,TODO,No backup verification,Historical records may exist in two sources,Export Oracle and Sheets; test restoration before removal,Restorable snapshot and checksum,AI+owner,2026-11-15
+P0-03,P0,CI/deployment,UNVERIFIED,.github/workflows/daily-oracle-archive.yml,Daily workflow exists on schedule,Inspect latest Actions run and Vercel deployment logs,Successful real run with counts timestamps,AI,2026-11-15
+P0-04,P0,Lint/check,TODO,package.json,npm run check present,Run npm install and npm run check,Checks pass,AI,2026-11-15
+P1-01,P1,Oracle tables,UNVERIFIED,api/history.js,7 core tables referenced by SQL,Inspect schema DDL PK FK indexes constraints,Schema and source field map documented,AI,2026-11-15
+P1-02,P1,Full selections import,CODE_PRESENT,api/oracle-import-selections.js,Batch MERGE from СЕЛЕКЦИИ,Dry-run import and reconcile,Date count status odds and PL parity,AI,2026-11-15
+P1-03,P1,Strategy import,CODE_PRESENT,api/oracle-import-strategies.js,Links strategy flags to Oracle selections,Check unmatched and duplicates by strategy,Exact membership counts and row matching,AI,2026-11-15
+P1-04,P1,Best singles import,CODE_PRESENT,api/oracle-import-best.js,АРХИВ BEST import,Verify all dates and outcomes,Best singles match source without duplicates,AI,2026-11-15
+P1-05,P1,Recorded builders,CODE_PRESENT,api/oracle-import-builders.js,Recorded and Best modeled proposals imported separately,Verify builder grouping leg counts void statuses,Correct builder PL and distinct types,AI,2026-11-15
+P1-06,P1,Legacy odds,CODE_PRESENT,api/oracle-import-odds-legacy.js,Historical odds date-only imported,Verify precision fields and idempotency,No invented timestamps and complete values,AI,2026-11-15
+P1-07,P1,Stable identities,RISK,api/oracle-import-selections.js,Some hashes include source row index,Design immutable unique identity,Reordering rows does not create duplicate archived bets,AI,2026-11-15
+P2-01,P2,Merged reads,INCOMPLETE,api/data.js; api/oracle-stats.js,Oracle and Sheets handled separately for some views,Implement unified API aggregator across all views,Historical plus today returned exactly once,AI,2026-11-15
+P2-02,P2,Frontend migration,INCOMPLETE,public/app.js,Frontend can switch stats Oracle or Sheets; other views Sheets-oriented,Switch views to merged API while retaining filters,All tabs work with no gaps or doubles,AI,2026-11-15
+P2-03,P2,Timezone and pagination,TODO,api/history.js,ISO Oracle date filters and page sizes,Test Sofia midnight DST and pagination stability,No missing or duplicated day/page rows,AI,2026-11-15
+P3-01,P3,Stat reconciliation,INCOMPLETE,api/oracle-stats.js; api/data.js,Different aggregators; historical-only oracle stats,Compare P/L Yield WR selected sources versus independent inputs,Exact agreement for fixed dataset,AI,2026-11-15
+P3-02,P3,Best builder semantics,CODE_PRESENT,api/oracle-stats.js,Model proposal and placed recorded builder separated,Verify void/partial win settlement and no double count,Correct unit stake PL and status,AI,2026-11-15
+P3-03,P3,SQL scale,RISK,api/oracle-stats.js,Several queries maxRows 25000,Use database aggregation or paged fetch,Correct statistics beyond 25000 rows,AI,2026-11-15
+P4-01,P4,Daily archive,CODE_PRESENT,scripts/daily-oracle-archive.mjs,Scheduled noon Sofia guard plus audits,Run and inspect actual scheduled execution,Success shown in Actions logs with counts,AI,2026-11-15
+P4-02,P4,Alerts/recovery,TODO,scripts/daily-oracle-archive.mjs,Retries and error throws; alerting not verified,Implement alerts backup rollback runbook,Failures detected and recoverable,AI,2026-11-15
+P4-03,P4,Safe Sheet cleanup,BLOCKED,api/data.js,Still depends on old archive Sheets,Only delete after merged API parity and backups,No reads to removed data and successful restore,AI+owner,2026-11-15
+P5-01,P5,Mobile validation,UNVERIFIED,public/app.js,PWA multiple views in code,Check real production app on Android desktop,All tabs filters and crests function,AI+owner,2026-11-15
+P5-02,P5,Docs upkeep,IN_PROGRESS,README.md; docs/MASTER_PLAN.md; docs/AI_HANDOFF.csv,README is older than Oracle architecture,Update plan and CSV in same changeset for every future code change,Docs current after every commit; verify review,All contributors,2026-11-15
