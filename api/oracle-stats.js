@@ -51,26 +51,56 @@ export default async function handler(req,res){
     FROM ADMIN.DS_SELECTIONS s JOIN ADMIN.DS_MATCHES m ON m.MATCH_ID=s.MATCH_ID
     ${where.length?'WHERE '+where.join(' AND '):''}
    )
-   SELECT SELECTION_ID,TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,SELECTION_LABEL,ODDS,RESULT_STATUS,PROFIT_UNITS,IS_BEST
+   SELECT SELECTION_ID,TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,MATCH_LABEL,SELECTION_LABEL,ODDS,RESULT_STATUS,PROFIT_UNITS,IS_BEST
    FROM picks WHERE RN=1`;
-  const [pickResult,linkResult,builderResult]=await Promise.all([
+  const [pickResult,linkResult,builderResult,bestResult,legResult]=await Promise.all([
    connection.execute(sql,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
    connection.execute("SELECT SELECTION_ID,STRATEGY_ID FROM ADMIN.DS_SELECTION_STRATEGIES",[],{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
    connection.execute(`SELECT BUILDER_ID,TO_CHAR(BUILDER_DATE,'YYYY-MM-DD') AS DAY_KEY,BUILDER_TYPE,ODDS,RESULT_STATUS,PROFIT_UNITS FROM ADMIN.DS_BUILDERS
     ${from||to?'WHERE '+[from?"BUILDER_DATE>=TO_DATE(:fromDay,'YYYY-MM-DD')":null,to?"BUILDER_DATE<TO_DATE(:toDay,'YYYY-MM-DD')+1":null].filter(Boolean).join(' AND '):''}`,
+    binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
+   connection.execute(`SELECT TO_CHAR(s.MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,m.MATCH_LABEL,s.SELECTION_LABEL,s.ODDS,s.RESULT_STATUS,s.PROFIT_UNITS FROM ADMIN.DS_SELECTIONS s JOIN ADMIN.DS_MATCHES m ON m.MATCH_ID=s.MATCH_ID
+    WHERE s.SOURCE_TYPE='BEST' ${where.length?'AND '+where.join(' AND '):''}`,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
+   connection.execute(`SELECT l.BUILDER_ID,l.LEG_NUMBER,l.ODDS,l.RESULT_STATUS FROM ADMIN.DS_BUILDER_LEGS l JOIN ADMIN.DS_BUILDERS b ON b.BUILDER_ID=l.BUILDER_ID
+    ${from||to?'WHERE '+[from?"b.BUILDER_DATE>=TO_DATE(:fromDay,'YYYY-MM-DD')":null,to?"b.BUILDER_DATE<TO_DATE(:toDay,'YYYY-MM-DD')+1":null].filter(Boolean).join(' AND '):''}`,
     binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000})
   ]);
   const belongs=new Map();
   for(const r of linkResult.rows){if(!belongs.has(r.SELECTION_ID))belongs.set(r.SELECTION_ID,new Set());belongs.get(r.SELECTION_ID).add(r.STRATEGY_ID)}
-  const picks=pickResult.rows.map(r=>({id:'selection:'+r.SELECTION_ID,day:r.DAY_KEY,odds:r.ODDS,status:r.RESULT_STATUS,pl:r.PROFIT_UNITS,isBest:Number(r.IS_BEST)===1,strategies:belongs.get(r.SELECTION_ID)||new Set()}));
-  const recorded=[],proposals=[];
+  // The master archive remains unique, while Best singles use the odds and
+  // settlement from their curated Best source, linked to that same logical pick.
+  const rowKey=(day,match,selection)=>[day,match,selection].map(x=>String(x||'').trim()).join('|');
+  const picks=pickResult.rows.map(r=>({id:'selection:'+r.SELECTION_ID,day:r.DAY_KEY,match:r.MATCH_LABEL,selection:r.SELECTION_LABEL,odds:r.ODDS,status:r.RESULT_STATUS,pl:r.PROFIT_UNITS,isBest:Number(r.IS_BEST)===1,strategies:belongs.get(r.SELECTION_ID)||new Set()}));
+  const byKey=new Map(picks.map(x=>[rowKey(x.day,x.match,x.selection),x]));
+  const bestSingles=new Map();
+  for(const r of bestResult.rows){
+   const k=rowKey(r.DAY_KEY,r.MATCH_LABEL,r.SELECTION_LABEL);
+   const master=byKey.get(k);
+   if(!master)continue;
+   const st=r.RESULT_STATUS;
+   const rawPL=r.PROFIT_UNITS;
+   bestSingles.set(k,{...master,odds:r.ODDS,status:st,pl:rawPL,isBest:true});
+  }
+  const recorded=[],proposals=[],legsByBuilder=new Map();
+  for(const r of legResult.rows){
+   if(!legsByBuilder.has(r.BUILDER_ID))legsByBuilder.set(r.BUILDER_ID,[]);
+   legsByBuilder.get(r.BUILDER_ID).push(r);
+  }
   for(const r of builderResult.rows){
    const item={id:'builder:'+r.BUILDER_ID,day:r.DAY_KEY,odds:r.ODDS,status:r.RESULT_STATUS,pl:r.PROFIT_UNITS};
-   if(r.BUILDER_TYPE==='BEST_PROPOSAL')proposals.push({...item,status:'pending',pl:null});
-   else if(r.BUILDER_TYPE==='RECORDED')recorded.push(item);
+   if(r.BUILDER_TYPE==='BEST_PROPOSAL'){
+    const legs=legsByBuilder.get(r.BUILDER_ID)||[];
+    if(!legs.length){proposals.push({...item,status:'pending',pl:null});continue}
+    const statuses=legs.map(x=>x.RESULT_STATUS);
+    const status=statuses.includes('loss')?'loss':statuses.includes('pending')?'pending':statuses.every(x=>x==='void')?'void':'win';
+    const pricesValid=legs.every(x=>Number(x.ODDS)>1&&Number.isFinite(Number(x.ODDS)));
+    const effective=pricesValid?legs.reduce((p,x)=>p*(x.RESULT_STATUS==='void'?1:Number(x.ODDS)),1):null;
+    const pl=status==='loss'?-1:status==='void'?0:status==='win'&&effective!==null?effective-1:null;
+    proposals.push({...item,status,pl});
+   }else if(r.BUILDER_TYPE==='RECORDED')recorded.push(item);
   }
   const groupStats=KEYS.map(k=>({key:k,name:NAMES[k],stats:calc(picks.filter(x=>x.strategies.has(k)))}));
-  const baskets={all:picks,best:picks.filter(x=>x.isBest),builders:recorded,bestBuilders:proposals};
+  const baskets={all:picks,best:[...bestSingles.values()],builders:recorded,bestBuilders:proposals};
   const chosen=new Map();
   for(const source of sources){
    const arr=KEYS.includes(source)?picks.filter(x=>x.strategies.has(source)):baskets[source]||[];
