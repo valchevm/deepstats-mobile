@@ -104,5 +104,19 @@ for(const kind of ['matches','selections','best','strategies','builders','builde
  if(result.items.length===0)throw Error('History API returned no records for '+kind);
  console.log('ARCHIVE VIEW OK '+kind+': '+result.items.length+' sample rows');
 }
+// Also verify the live Google Sheets backed tabs, including the dashboard.
+// Structural tests are date-independent; an empty current match day is valid.
+for(const [kind,required] of [
+ ['dashboard','metrics'],
+ ['matches','items'],
+ ['strategies','groups'],
+ ['builders','proposals'],
+ ['statistics','selected']
+]){
+ const result=await retry('/api/data?kind='+encodeURIComponent(kind));
+ const value=result?.[required];
+ if(value===null||value===undefined||(Array.isArray(value)===false&&typeof value!=='object'))throw Error('Live view invalid: '+kind+'.'+required);
+ console.log('LIVE VIEW OK '+kind);
+}
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
 console.log('DAILY ARCHIVE SUCCESS');
