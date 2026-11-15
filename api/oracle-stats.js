@@ -56,16 +56,16 @@ export default async function handler(req,res){
    SELECT SELECTION_ID,TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,MATCH_LABEL,SELECTION_LABEL,ODDS,RESULT_STATUS,PROFIT_UNITS,IS_BEST
    FROM picks WHERE RN=1`;
   const queries=[
-   connection.execute(sql,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
-   connection.execute("SELECT SELECTION_ID,STRATEGY_ID FROM ADMIN.DS_SELECTION_STRATEGIES",[],{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
-   connection.execute(`SELECT BUILDER_ID,TO_CHAR(BUILDER_DATE,'YYYY-MM-DD') AS DAY_KEY,BUILDER_TYPE,ODDS,RESULT_STATUS,PROFIT_UNITS FROM ADMIN.DS_BUILDERS
+   [sql,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}],
+   ["SELECT SELECTION_ID,STRATEGY_ID FROM ADMIN.DS_SELECTION_STRATEGIES",[],{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}],
+   [`SELECT BUILDER_ID,TO_CHAR(BUILDER_DATE,'YYYY-MM-DD') AS DAY_KEY,BUILDER_TYPE,ODDS,RESULT_STATUS,PROFIT_UNITS FROM ADMIN.DS_BUILDERS
     ${from||to?'WHERE '+[from?"BUILDER_DATE>=TO_DATE(:fromDay,'YYYY-MM-DD')":null,to?"BUILDER_DATE<TO_DATE(:toDay,'YYYY-MM-DD')+1":null].filter(Boolean).join(' AND '):''}`,
-    binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
-   connection.execute(`SELECT TO_CHAR(s.MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,m.MATCH_LABEL,s.SELECTION_LABEL,s.ODDS,s.RESULT_STATUS,s.PROFIT_UNITS FROM ADMIN.DS_SELECTIONS s JOIN ADMIN.DS_MATCHES m ON m.MATCH_ID=s.MATCH_ID
-    WHERE s.SOURCE_TYPE='BEST' ${where.length?'AND '+where.join(' AND '):''}`,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
-   connection.execute(`SELECT l.BUILDER_ID,l.LEG_NUMBER,l.ODDS,l.RESULT_STATUS FROM ADMIN.DS_BUILDER_LEGS l JOIN ADMIN.DS_BUILDERS b ON b.BUILDER_ID=l.BUILDER_ID
+    binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}],
+   [`SELECT TO_CHAR(s.MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,m.MATCH_LABEL,s.SELECTION_LABEL,s.ODDS,s.RESULT_STATUS,s.PROFIT_UNITS FROM ADMIN.DS_SELECTIONS s JOIN ADMIN.DS_MATCHES m ON m.MATCH_ID=s.MATCH_ID
+    WHERE s.SOURCE_TYPE='BEST' ${where.length?'AND '+where.join(' AND '):''}`,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}],
+   [`SELECT l.BUILDER_ID,l.LEG_NUMBER,l.ODDS,l.RESULT_STATUS FROM ADMIN.DS_BUILDER_LEGS l JOIN ADMIN.DS_BUILDERS b ON b.BUILDER_ID=l.BUILDER_ID
     ${from||to?'WHERE '+[from?"b.BUILDER_DATE>=TO_DATE(:fromDay,'YYYY-MM-DD')":null,to?"b.BUILDER_DATE<TO_DATE(:toDay,'YYYY-MM-DD')+1":null].filter(Boolean).join(' AND '):''}`,
-    binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000})
+    binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}]
   ];
   // Single Oracle connection: run queries sequentially to avoid concurrent operations
   // and connection-level queueing/driver races on Vercel.
