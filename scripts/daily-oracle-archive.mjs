@@ -36,9 +36,20 @@ while(offset<preview.historicalObservations){
  offset=result.nextOffset;processed+=result.processed;
  console.log('Odds '+processed+'/'+preview.historicalObservations+'; stored '+result.totalStored);
 }
+const full=await retry('/api/oracle-import-selections');
+if(full.invalidRows)throw Error('Invalid full selection rows: '+full.invalidRows);
+console.log('Full selections eligible: '+full.historicalSelections+'; unique matches: '+full.uniqueMatches);
+let fullOffset=0;
+while(fullOffset<full.historicalSelections){
+ const result=await retry('/api/oracle-import-selections',{confirm:'IMPORT_FULL_SELECTIONS',offset:fullOffset});
+ if(!Number.isInteger(result.nextOffset)||result.nextOffset<=fullOffset||result.processed<1)throw Error('Invalid full selection batch at '+fullOffset);
+ fullOffset=result.nextOffset;
+ console.log('Full selections '+fullOffset+'/'+full.historicalSelections);
+}
 const best=await retry('/api/oracle-import-best',{confirm:'IMPORT_ARCHIVE_BEST'});
 console.log('Best archive import:',JSON.stringify(best));
 const summary=await retry('/api/oracle-archive?kind=summary');
 console.log('Verified Oracle totals:',JSON.stringify(summary));
+if(summary.selections<full.historicalSelections)throw Error('Oracle selections below full source count');
 if(summary.legacyOdds<preview.historicalObservations)throw Error('Oracle odds total below eligible source count');
 console.log('DAILY ARCHIVE SUCCESS');
