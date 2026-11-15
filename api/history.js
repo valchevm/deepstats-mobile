@@ -1,13 +1,20 @@
 import {access} from './_sheets.js';
+import {timingSafeEqual} from 'node:crypto';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
+function authorizedAdmin(req){
+ const expected=process.env.ADMIN_ACCESS_TOKEN||'';
+ const supplied=String(req.headers.authorization||'').replace(/^Bearer /,'');
+ const a=Buffer.from(supplied),b=Buffer.from(expected);
+ return !!expected&&!!supplied&&a.length===b.length&&timingSafeEqual(a,b);
+}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
- if(!access(req,res))return;
+ if(!authorizedAdmin(req)&&!access(req,res))return;
  const kind=String(req.query.kind||'matches');
  if(!['matches','selections','best','strategies','builders','builderlegs','odds'].includes(kind))return res.status(400).json({error:'Invalid kind'});
  const limit=Number(req.query.limit??50),offset=Number(req.query.offset??0);
