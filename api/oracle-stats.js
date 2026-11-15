@@ -1,4 +1,5 @@
 import {access} from './_sheets.js';
+import {timingSafeEqual} from 'node:crypto';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
@@ -7,6 +8,7 @@ import {join} from 'node:path';
 const KEYS=['A','B','C','D1','D2','D3','E','F'];
 const NAMES={A:'Удари',B:'Точни удари',C:'Голове',D1:'Победа',D2:'Двоен шанс',D3:'Полувреме',E:'Гост 9/10',F:'Гост над 2'};
 const allowed=new Set(['all','best','builders','bestBuilders',...KEYS]);
+function adminAccess(req){const token=process.env.ADMIN_ACCESS_TOKEN||'';const sent=String(req.headers.authorization||'').replace(/^Bearer /,'');const a=Buffer.from(sent),b=Buffer.from(token);return !!token&&!!sent&&a.length===b.length&&timingSafeEqual(a,b)}
 const dateFormat=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)?d:null;
 function calc(items){
  const out={count:items.length,settled:0,wins:0,losses:0,voids:0,pending:0,profit:0,yield:0,wr:0};
@@ -27,7 +29,7 @@ function calc(items){
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
- if(!access(req,res))return;
+ if(!adminAccess(req)&&!access(req,res))return;
  const from=String(req.query.from||''),to=String(req.query.to||'');
  if((from&&!dateFormat(from))||(to&&!dateFormat(to))||(from&&to&&from>to))return res.status(400).json({error:'Invalid date range'});
  const raw=String(req.query.sources??'all');
@@ -53,7 +55,7 @@ export default async function handler(req,res){
    )
    SELECT SELECTION_ID,TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS DAY_KEY,MATCH_LABEL,SELECTION_LABEL,ODDS,RESULT_STATUS,PROFIT_UNITS,IS_BEST
    FROM picks WHERE RN=1`;
-  const [pickResult,linkResult,builderResult,bestResult,legResult]=await Promise.all([
+  const queries=[
    connection.execute(sql,binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
    connection.execute("SELECT SELECTION_ID,STRATEGY_ID FROM ADMIN.DS_SELECTION_STRATEGIES",[],{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000}),
    connection.execute(`SELECT BUILDER_ID,TO_CHAR(BUILDER_DATE,'YYYY-MM-DD') AS DAY_KEY,BUILDER_TYPE,ODDS,RESULT_STATUS,PROFIT_UNITS FROM ADMIN.DS_BUILDERS
@@ -64,7 +66,12 @@ export default async function handler(req,res){
    connection.execute(`SELECT l.BUILDER_ID,l.LEG_NUMBER,l.ODDS,l.RESULT_STATUS FROM ADMIN.DS_BUILDER_LEGS l JOIN ADMIN.DS_BUILDERS b ON b.BUILDER_ID=l.BUILDER_ID
     ${from||to?'WHERE '+[from?"b.BUILDER_DATE>=TO_DATE(:fromDay,'YYYY-MM-DD')":null,to?"b.BUILDER_DATE<TO_DATE(:toDay,'YYYY-MM-DD')+1":null].filter(Boolean).join(' AND '):''}`,
     binds,{outFormat:oracledb.OUT_FORMAT_OBJECT,maxRows:25000})
-  ]);
+  ];
+  // Single Oracle connection: run queries sequentially to avoid concurrent operations
+  // and connection-level queueing/driver races on Vercel.
+  const results=[];
+  for(const [query,params,opts] of queries)results.push(await connection.execute(query,params,opts));
+  const [pickResult,linkResult,builderResult,bestResult,legResult]=results;
   const belongs=new Map();
   for(const r of linkResult.rows){if(!belongs.has(r.SELECTION_ID))belongs.set(r.SELECTION_ID,new Set());belongs.get(r.SELECTION_ID).add(r.STRATEGY_ID)}
   // The master archive remains unique, while Best singles use the odds and
