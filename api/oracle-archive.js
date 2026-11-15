@@ -34,9 +34,11 @@ export default async function handler(req,res){
     connection.execute('SELECT COUNT(*) AS TOTAL FROM ADMIN.DS_ODDS_DAILY_LEGACY',[],opts)
    ]);
    const breakdown=await connection.execute(`SELECT SOURCE_TYPE, COUNT(*) AS TOTAL, COUNT(DISTINCT MATCH_ID) AS MATCHES, SUM(CASE WHEN RESULT_STATUS='win' THEN 1 ELSE 0 END) AS WINS, SUM(CASE WHEN RESULT_STATUS='loss' THEN 1 ELSE 0 END) AS LOSSES, SUM(CASE WHEN RESULT_STATUS='void' THEN 1 ELSE 0 END) AS VOIDS, SUM(CASE WHEN RESULT_STATUS='pending' THEN 1 ELSE 0 END) AS PENDING, TO_CHAR(MIN(MATCH_DATE),'YYYY-MM-DD') AS FIRST_DATE, TO_CHAR(MAX(MATCH_DATE),'YYYY-MM-DD') AS LAST_DATE FROM ADMIN.DS_SELECTIONS GROUP BY SOURCE_TYPE`,[],opts);
+   const strategyCounts=await connection.execute('SELECT ss.STRATEGY_ID, COUNT(*) AS TOTAL FROM ADMIN.DS_SELECTION_STRATEGIES ss GROUP BY ss.STRATEGY_ID ORDER BY ss.STRATEGY_ID',[],opts);
+   const strategyLinks=await connection.execute('SELECT COUNT(*) AS TOTAL FROM ADMIN.DS_SELECTION_STRATEGIES',[],opts);
    const builderCounts=await connection.execute('SELECT COUNT(*) AS TOTAL FROM ADMIN.DS_BUILDERS',[],opts);
    const legCounts=await connection.execute('SELECT COUNT(*) AS TOTAL FROM ADMIN.DS_BUILDER_LEGS',[],opts);
-   return res.status(200).json({source:'oracle',matches:m.rows[0].TOTAL,selections:s.rows[0].TOTAL,legacyOdds:o.rows[0].TOTAL,builders:builderCounts.rows[0].TOTAL,builderLegs:legCounts.rows[0].TOTAL,selectionSources:breakdown.rows});
+   return res.status(200).json({source:'oracle',matches:m.rows[0].TOTAL,selections:s.rows[0].TOTAL,legacyOdds:o.rows[0].TOTAL,builders:builderCounts.rows[0].TOTAL,builderLegs:legCounts.rows[0].TOTAL,strategyLinks:strategyLinks.rows[0].TOTAL,strategyCounts:strategyCounts.rows,selectionSources:breakdown.rows});
   }
   const config={
    matches:{table:'ADMIN.DS_MATCHES',date:'MATCH_DATE',columns:"MATCH_ID, TO_CHAR(MATCH_DATE,'YYYY-MM-DD') AS MATCH_DATE, LEAGUE, HOME_TEAM, AWAY_TEAM, MATCH_LABEL, FINAL_SCORE",order:'MATCH_DATE DESC, MATCH_ID'},
