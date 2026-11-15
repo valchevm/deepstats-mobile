@@ -33,9 +33,10 @@ export default async function handler(req,res){
   }else if(kind==='selections'||kind==='best'){
    // One canonical row per dated match + selection, while preserving its Best membership.
    const bestOnly=kind==='best'?' AND IS_BEST=1':'';
+   const primarySource=kind==='best'?'BEST':'FULL';
    sql=`WITH source_rows AS (
     SELECT s.SELECTION_ID,s.MATCH_ID,s.MATCH_DATE,s.SELECTION_LABEL,s.ODDS,s.LEVEL_LABEL,s.RESULT_LABEL,s.RESULT_STATUS,s.PROFIT_UNITS,s.SOURCE_TYPE,m.MATCH_LABEL,m.LEAGUE,
-    ROW_NUMBER() OVER(PARTITION BY s.MATCH_DATE,TRIM(m.MATCH_LABEL),TRIM(s.SELECTION_LABEL) ORDER BY CASE WHEN s.SOURCE_TYPE='FULL' THEN 0 WHEN s.SOURCE_TYPE='BEST' THEN 1 ELSE 2 END,s.SELECTION_ID) AS RN,
+    ROW_NUMBER() OVER(PARTITION BY s.MATCH_DATE,TRIM(m.MATCH_LABEL),TRIM(s.SELECTION_LABEL) ORDER BY CASE WHEN s.SOURCE_TYPE='${primarySource}' THEN 0 ELSE 1 END,s.SELECTION_ID) AS RN,
     MAX(CASE WHEN s.SOURCE_TYPE='BEST' THEN 1 ELSE 0 END) OVER(PARTITION BY s.MATCH_DATE,TRIM(m.MATCH_LABEL),TRIM(s.SELECTION_LABEL)) AS IS_BEST
     FROM ADMIN.DS_SELECTIONS s JOIN ADMIN.DS_MATCHES m ON m.MATCH_ID=s.MATCH_ID${filter.replaceAll('MATCH_DATE','s.MATCH_DATE')}
    )
