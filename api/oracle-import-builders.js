@@ -40,8 +40,13 @@ function build(best,own,today){
  const builders=[];
  for(const [day,legs] of grouped){
   const odds=legs.reduce((n,r)=>n*r.odds,1);
-  // Best of the Day is a proposal; never count hypothetical returns as actual profit.
-  builders.push({id:'best-day:'+day,day,type:'BEST_PROPOSAL',odds,st:'pending',profit:null,raw:JSON.stringify({source:'АРХИВ BEST',betPlaced:false,legs:legs.length}),legs:legs.map(x=>({...x,selectionId:null}))});
+  // Model-performance simulation: one unit per Best single and one
+  // separate unit per daily accumulator; not proof that a bet was placed.
+  const statuses=legs.map(x=>x.status);
+  const st=statuses.includes('loss')?'loss':statuses.includes('pending')?'pending':statuses.every(x=>x==='void')?'void':'win';
+  const effective=legs.reduce((n,x)=>n*(x.status==='void'?1:x.odds),1);
+  const profit=st==='loss'?-1:st==='void'?0:st==='win'?effective-1:null;
+  builders.push({id:'best-day:'+day,day,type:'BEST_PROPOSAL',odds,st,profit,raw:JSON.stringify({source:'АРХИВ BEST',betPlaced:false,modelPerformance:true,legs:legs.length}),legs:legs.map(x=>({...x,selectionId:null}))});
  }
  for(let i=1;i<own.length;i++){
   const r=own[i],day=dateOf(r?.[1]);if(!day||day>=today||clean(r[0]).toLowerCase()!=='билдър')continue;
