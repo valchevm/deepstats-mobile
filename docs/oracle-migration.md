@@ -9,9 +9,9 @@ Never put Oracle passwords, wallet, ORDS credentials, Google service-account key
 2. Run sql/oracle-schema.sql in the designated Oracle schema; verify created objects.
 3. Configure Vercel server-side Oracle connection (details depend on Autonomous Database connection type; do not commit secrets).
 4. Import existing archive tabs and historical daily rows into Oracle using stable per-record IDs, MERGE, and reconciliation.
-5. Switch /api/data historical reads to Oracle; merge only Sofia-local today rows from Sheets. Preserve API response shapes and deduplicate.
+5. Switch /api/data historical reads to Oracle; merge only Sofia-local today rows from Sheets for the default daily view; retain future-dated Sheet rows for 4–5 days of pre-match odds tracking. Preserve API response shapes and deduplicate.
 6. Replace historical stats formulas with scheduled server-side aggregated snapshots (Oracle history + today's Sheet rows).
-7. Enable scheduled archive after midnight Europe/Sofia. Verify inserted rows, statuses, counts and checksums before deleting yesterday's Sheet rows. Retry idempotently. Pending outcomes stay in Oracle and are updated when results arrive.
+7. Enable scheduled archive after midnight Europe/Sofia for rows with match_date < Sofia-local today only. Future-dated rows must remain in Sheets until their match day passes. Verify inserted rows, statuses, counts and checksums before deleting past Sheet rows. Retry idempotently. Pending outcomes stay in Oracle and are updated when results arrive.
 8. Remove historical tabs only after a successful backfill, reconciliation, and backup. Do not remove summary/statistics tabs.
 
 ## Constraints
@@ -20,3 +20,10 @@ Never put Oracle passwords, wallet, ORDS credentials, Google service-account key
 - Avoid exposing raw upstream errors or direct source URLs to clients.
 - Today's date is calculated in Europe/Sofia, not UTC.
 - The live migration is NOT enabled by adding this schema or guide alone.
+
+## Forward-looking daily Sheet window and odds history
+- Google Sheets is a rolling operational window: today plus 4–5 future days, not just today.
+- The default app view exposes only today's fixtures; future rows must not leak through dashboard, best picks, builders, or default matches endpoints. Explicit historical date queries may read Oracle.
+- Never archive or clear future-dated rows. At rollover, archive only rows strictly earlier than Europe/Sofia current date.
+- Preserve each observed odds value with its observed timestamp, bookmaker, market, selection and match stable ID; do not overwrite historical odds snapshots when updating the latest quote.
+- Stats combine Oracle past with today's operational rows, excluding future fixtures from settled historical totals until appropriate.
