@@ -1,5 +1,5 @@
 # DeepStats — Master System Plan
-Last reviewed: 2026-11-15
+Last reviewed: 2026-11-16
 Repository: https://github.com/valchevm/deepstats-mobile
 Status convention: [x] Code found in repository; [ ] Not yet verified or incomplete. **Code present does not mean production validated.**
 
@@ -59,6 +59,28 @@ Google Sheets tabs referenced: `СЕЛЕКЦИИ` (today / existing full rows), 
 - [ ] Verify old historic Sheet fallback can be removed only after Oracle parity.
 - [ ] Update `README.md`, technical CSV handoff, and release notes after every meaningful change.
 
+### V19 interface release — 2026-11-16
+- [x] Source implemented: five bottom tabs **Днес / Мачове / Статистика / Стратегии / Профил**; Билдъри and Архив are accessible through **Профил**, and direct in-app shortcuts still work.
+- [x] Source implemented: three selectable home layouts — A Premium Sports, B Data Analytics, C Minimal Pro — stored as `ds-design`. Selection in Profile persists per browser/device.
+- [x] Source implemented: dark default with persistent light/dark toggle (`ds-theme`); styling targets both modes and major legacy components.
+- [x] Source implemented: home A/B statistics uses all available Oracle history for strategy keys `A,B,C,D1,D2,D3,E,F` by `/api/oracle-stats?sources=...` without a date filter; C shows a compact summary and expandable full breakdown. Labeled Sheets fallback if Oracle read fails.
+- [x] Source implemented: real today Best selections, dates, league, fixture cards and odds still originate from Google Sheets; no UI hardcoded counts.
+- [x] Source implemented: PWA cache version v28 and asset query versions v191 updated together.
+- [x] Static JS syntax compiled in isolated V8 and source-level consistency checks passed for app/service worker and nav/asset references.
+- [x] Regression contract test source added at `tests/ui-contract.test.mjs`, invoked by `npm run check`.
+- [ ] `npm run check` execution in Node, external/browser functional tests, Vercel build/deployment, actual Oracle authenticated responses, Android light-theme screenshots and end-to-end reconciliation **not yet independently verified**.
+- [ ] Legacy strategies detail still consumes `api/data.js` (Sheets). The home A-F historical summary consumes Oracle; do not equate those reports without parity checks.
+- [ ] Existing `api/data.js` mixes current and historical Sheets; unified API migration remains open (P2-01).
+
+#### Interface acceptance checklist
+- [ ] On Android browser and installed PWA, confirm navigation is exactly five tabs; profile routes open both builders and Oracle archive; returning via five tabs works.
+- [ ] Dark is default on a fresh device; toggling light survives reload/reopen. Validate text contrast on every legacy page.
+- [ ] Switching A/B/C in Profile updates home without changing data; selection survives reload.
+- [ ] Check live today's Best against `СЕЛЕКЦИИ!A3:O8`; today's match selections against `СЕЛЕКЦИИ!A11:O`.
+- [ ] Compare A–F home Oracle count, WR, Yield, P/L and daily chart to protected `/api/oracle-stats` and independent archive for the **entire imported time range**.
+- [ ] If Oracle is unreachable, show clearly labeled Sheets fallback; do not imply whole-database completeness.
+- [ ] Validate no layout clipping on 320–430px screens, keyboard navigation, missing crest fallback, theme on strategies/builders/archive and PWA refresh.
+
 ## Known technical risks to review
 1. `api/data.js` uses JSON/label-based dedupe for Sheet rows; it can retain duplicates or accidentally merge legitimate selections. Audit against Oracle identity rules.
 2. `api/oracle-stats.js` returns historical-only stats; dashboard has Oracle-to-Sheets fallback. Fallback ≠ merged totals.
@@ -85,6 +107,7 @@ For each logical GitHub change:
 | Date | Change | Verification | Next |
 |---|---|---|---|
 | 2026-11-15 | Initial audited master plan + CSV handoff created from GitHub source inspection | Source code inspection only; no production runtime validation | P0 baseline and full integration audit |
+| 2026-11-16 | V19: selectable A/B/C layouts, dark/light themes, five-tab nav, Profile relocation, historical A–F Oracle home KPIs, UI regression tests | App/SW JS syntax and source consistency inspected; live Node/Oracle/Vercel/Android tests pending | Verify CI and real authenticated user journeys, then P2 unified hybrid API |
 
 ## Definition of done
 - The production app shows correct live-day data combined with historical Oracle records for all views.
