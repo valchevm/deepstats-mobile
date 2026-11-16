@@ -26,7 +26,7 @@ test('dark is default; light and dark remain selectable and persistent',()=>{
  assert.match(css,/html\[data-theme="light"\]/);
 });
 test('concepts A B C render independently with persistent selection',()=>{
- assert.match(app,/ds19-design-\$\{currentDesign\}/);
+ assert.match(app,/ds19-design-'\+currentDesign/);
  for(const x of ['A','B','C'])assert.match(app,new RegExp("currentDesign==='"+x+"'"));
  assert.match(app,/data-set-design="A"/);
  assert.match(app,/data-set-design="B"/);
