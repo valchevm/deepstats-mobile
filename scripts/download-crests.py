@@ -212,8 +212,18 @@ def main():
                 print("Processed", i, "of", len(TEAMS))
     manifest = {key: url for key, url in sorted(done.items()) if url}
     missing = sorted([team for team in TEAMS if not done.get(team.casefold())])
+    # National teams use country flags, never count those as missing CLUB crests.
+    try:
+        nations=json.loads((ROOT.parent/"flags"/"codes.json").read_text(encoding="utf-8"))
+        national_keys=set(n.casefold() for n in nations)
+    except Exception:
+        national_keys=set()
+    nation_names=sorted(t for t in TEAMS if t.casefold() in national_keys)
+    club_names=[t for t in TEAMS if t.casefold() not in national_keys]
+    missing_clubs=sorted(t for t in missing if t.casefold() not in national_keys)
+    (ROOT/"unresolved-clubs.json").write_text(json.dumps({"totalClubs":len(club_names),"resolvedClubBadges":len(club_names)-len(missing_clubs),"remainingClubs":missing_clubs,"reason":"No unambiguous, verified club badge from current public sources; national teams handled by flags","sources":["JoseArroyave/football-logos","luukhopman/football-logos","TheSportsDB"]},ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    (ROOT / "coverage.json").write_text(json.dumps({"total": len(TEAMS), "resolved": len(manifest), "unresolved": missing, "source": "JoseArroyave SVG / luukhopman 2026-27 PNG / TheSportsDB; exact identity only"}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (ROOT / "coverage.json").write_text(json.dumps({"total": len(TEAMS), "resolved": len(manifest), "unresolved": missing, "clubTotal": len(club_names), "clubResolved": len(club_names)-len(missing_clubs), "clubUnresolved": len(missing_clubs), "nationalTeamCount": len(nation_names), "source": "JoseArroyave SVG / luukhopman 2026-27 PNG / TheSportsDB; exact identity only"}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Real crests:", len(manifest), "/", len(TEAMS), "not verified:", len(missing))
     if missing:
         print("First unresolved:", ", ".join(missing[:35]))
