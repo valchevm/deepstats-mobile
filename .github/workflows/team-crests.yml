@@ -1,5 +1,11 @@
 name: Update team crests
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/download-crests.py'
+      - '.github/workflows/team-crests.yml'
+      - 'public/crests/teams.json'
   workflow_dispatch:
   schedule:
     - cron: '15 2 * * 1'
@@ -21,4 +27,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/crests/
-          git diff --cached --quiet || (git commit -m "assets: cache verified football club crests" && git push)
+          git diff --cached --quiet || (git commit -m "assets: cache verified real football crests with coverage audit" && git push)
