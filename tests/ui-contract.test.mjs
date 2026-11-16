@@ -76,3 +76,22 @@ test('local club badge manifest only references existing files and tracks unreso
  }
  assert.ok(Array.isArray(report.unresolved));
 });
+
+test('Builder history renders without historical statistics scope errors',()=>{
+ const builder=app.slice(app.indexOf('async function builders(){'),app.indexOf('function chart(points)'));
+ const stats=app.slice(app.indexOf('async function statistics(){'));
+ assert.doesNotMatch(builder,/historicalPanel/);
+ assert.match(stats,/\$\{historicalPanel\}\$\{dates\(\)\}/);
+ assert.match(builder,/Promise\.allSettled/);
+ assert.match(builder,/oracleBuilderHistory/);
+ assert.match(app,/t==='builders'\)\&\&state\.tab!==t\)state\.mode='all'/);
+ assert.match(app,/kind=builders&type=/);
+ assert.match(builder,/builderHistoryState\.offset/);
+});
+test('Oracle builder API filters builder types before paging',()=>{
+ const history=read('api/history.js');
+ assert.match(history,/BEST_PROPOSAL/);
+ assert.match(history,/RECORDED/);
+ assert.match(history,/builderFilter\.replaceAll\('MATCH_DATE','b\.BUILDER_DATE'\)/);
+ assert.match(history,/b\.BUILDER_TYPE=:builderType/);
+});
