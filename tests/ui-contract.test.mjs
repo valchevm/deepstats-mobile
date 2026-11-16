@@ -54,7 +54,7 @@ test('new scripts and styles share the same cache-busting versions',()=>{
  assert.ok(appUrl&&cssUrl);
  assert.ok(sw.includes(appUrl));
  assert.ok(sw.includes(cssUrl));
- assert.match(sw,/deepstats-static-v29/);
+ assert.match(sw,/deepstats-static-v30/);
 });
 test('existing Oracle and Sheets API source files are still referenced',()=>{
  assert.match(app,/api\('builders'/);
