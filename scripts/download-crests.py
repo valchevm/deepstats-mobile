@@ -2,7 +2,8 @@
 """Cache real, exact-match club badges into public/crests/.
 
 Sources: JoseArroyave/football-logos (MIT; SVGs organised by country)
-and TheSportsDB (PNG/WEBP/JPG fallback). No fuzzy/non-unique matching.
+the luukhopman/football-logos 2026/27 PNG directory and TheSportsDB fallback.
+No fuzzy/non-unique matching.
 Unresolved names are reported; generated shields are not official badges.
 """
 import concurrent.futures
@@ -22,6 +23,8 @@ MANIFEST_PATH = ROOT / "manifest.json"
 existing = json.loads(MANIFEST_PATH.read_text(encoding="utf-8")) if MANIFEST_PATH.exists() else {}
 TREE = "https://api.github.com/repos/JoseArroyave/football-logos/git/trees/main?recursive=1"
 RAW = "https://raw.githubusercontent.com/JoseArroyave/football-logos/refs/heads/main/"
+SECONDARY_TREE = "https://api.github.com/repos/luukhopman/football-logos/git/trees/master?recursive=1"
+SECONDARY_RAW = "https://raw.githubusercontent.com/luukhopman/football-logos/refs/heads/master/"
 HEADERS = {"User-Agent": "DeepStats-real-football-crest-cache/20", "Accept": "application/vnd.github+json"}
 ALIASES = {
     "leicester city": "leicester",
@@ -38,7 +41,13 @@ ALIASES = {
     "psv": "psv eindhoven",
     "rb leipzig": "rb leipzig",
     "ferencvárosi": "ferencvaros",
-    "neC nijmegen": "nec",
+    "nec nijmegen": "nec",
+    "brighton & hove albion": "brighton & hove albion",
+    "losc lille": "lille",
+    "olympique marseille": "olympique de marseille",
+    "fc köln": "1 fc koln",
+    "paris saint germain": "paris saint-germain",
+    "atlético de madrid": "atletico de madrid",
 }
 
 def norm(s):
@@ -90,6 +99,24 @@ def index_svg():
         print("SVG index unavailable:", str(ex)[:180])
         return {}
 
+def index_png():
+    try:
+        tree = json.loads(get(SECONDARY_TREE, 25))
+        if tree.get("truncated"):
+            raise ValueError("PNG tree truncated")
+        entries = {}
+        for file in tree.get("tree", []):
+            path = file.get("path", "")
+            if file.get("type") != "blob" or not re.fullmatch(r"logos/[^/]+/[^/]+\.png", path, re.I):
+                continue
+            key = norm(Path(path).stem)
+            entries.setdefault(key, []).append(path)
+        print("Secondary PNG index:", sum(map(len, entries.values())), "files")
+        return entries
+    except Exception as ex:
+        print("Secondary PNG index unavailable:", str(ex)[:180])
+        return {}
+
 def source_path(team, idx):
     choices = [team, ALIASES.get(team.casefold(), "")]
     for candidate in choices:
@@ -98,6 +125,23 @@ def source_path(team, idx):
         matches = idx.get(norm(candidate), [])
         if len(matches) == 1:
             return matches[0]
+    return None
+
+def second_source(team, index):
+    for candidate in [team, ALIASES.get(team.casefold(), "")]:
+        if not candidate:
+            continue
+        paths = index.get(norm(candidate), [])
+        # Do not silently pick a club when multiple leagues share the same name.
+        if len(paths) != 1:
+            continue
+        url = SECONDARY_RAW + "/".join(urllib.parse.quote(p) for p in paths[0].split("/"))
+        try:
+            raw = get(url)
+        except Exception:
+            continue
+        if raw.startswith(b"\x89PNG\r\n\x1a\n") and 100 <= len(raw) <= 400000:
+            return raw
     return None
 
 def sportsdb(team):
@@ -126,7 +170,7 @@ def sportsdb(team):
             return raw, ext, "thesportsdb"
     return None
 
-def one(team, index):
+def one(team, index, png_index):
     key = team.casefold()
     previous = existing.get(key, "")
     if previous.startswith("/crests/") and (ROOT / Path(previous).name).is_file():
@@ -142,6 +186,11 @@ def one(team, index):
                 return team, "/crests/" + name, "github-svg"
         except Exception as ex:
             print("SVG failed:", team, str(ex)[:90])
+    png = second_source(team, png_index)
+    if png:
+        name = slug(team) + '.png'
+        (ROOT / name).write_bytes(png)
+        return team, '/crests/' + name, 'github-2026-png'
     alt = sportsdb(team)
     if alt:
         raw, ext, provider = alt
@@ -152,9 +201,10 @@ def one(team, index):
 
 def main():
     index = index_svg()
+    png_index = index_png()
     done = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-        tasks = [pool.submit(one, team, index) for team in TEAMS]
+        tasks = [pool.submit(one, team, index, png_index) for team in TEAMS]
         for i, task in enumerate(concurrent.futures.as_completed(tasks), 1):
             team, path, source = task.result()
             done[team.casefold()] = path
@@ -163,7 +213,7 @@ def main():
     manifest = {key: url for key, url in sorted(done.items()) if url}
     missing = sorted([team for team in TEAMS if not done.get(team.casefold())])
     MANIFEST_PATH.write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    (ROOT / "coverage.json").write_text(json.dumps({"total": len(TEAMS), "resolved": len(manifest), "unresolved": missing, "source": "GitHub logos / TheSportsDB; no guessed crest identity"}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    (ROOT / "coverage.json").write_text(json.dumps({"total": len(TEAMS), "resolved": len(manifest), "unresolved": missing, "source": "JoseArroyave SVG / luukhopman 2026-27 PNG / TheSportsDB; exact identity only"}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print("Real crests:", len(manifest), "/", len(TEAMS), "not verified:", len(missing))
     if missing:
         print("First unresolved:", ", ".join(missing[:35]))
