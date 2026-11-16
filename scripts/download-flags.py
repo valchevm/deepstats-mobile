@@ -6,6 +6,7 @@ Only ISO/territory codes from public/flags/codes.json are downloaded.
 """
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
+import os
 import re
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -20,7 +21,10 @@ TREE="https://api.github.com/repos/lipis/flag-icons/git/trees/main?recursive=1"
 
 def available_country_codes():
     try:
-        request=urllib.request.Request(TREE,headers={"User-Agent":"DeepStats-flags/22","Accept":"application/vnd.github+json"})
+        headers={"User-Agent":"DeepStats-flags/22","Accept":"application/vnd.github+json"}
+        if os.environ.get("GITHUB_TOKEN"):
+            headers["Authorization"]="Bearer "+os.environ["GITHUB_TOKEN"]
+        request=urllib.request.Request(TREE,headers=headers)
         with urllib.request.urlopen(request,timeout=25) as response:
             data=json.loads(response.read())
         if data.get("truncated"):
@@ -36,7 +40,7 @@ def available_country_codes():
         return sorted(candidates|set(CODES_UNIQUE))
     except Exception as ex:
         print("Full-world flag index unavailable; using known countries only:",str(ex)[:150])
-        return CODES_UNIQUE
+        return sorted(set(CODES_UNIQUE)|{f.stem for f in ROOT.glob("*.svg")})
 
 def get_flag(code):
     if not re.fullmatch(r"[a-z]{2}(?:-[a-z]{3})?",code):
