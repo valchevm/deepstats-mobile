@@ -1,6 +1,7 @@
 {
-  "total": 140,
-  "resolved": 140,
+  "total": 261,
+  "resolved": 261,
+  "mappedCountries": 140,
   "unresolved": [],
   "source": "lipis/flag-icons, 4x3 ISO SVG plus gb-eng/gb-sct/gb-wls/gb-nir",
   "accuracy": "Only listed codes; missing files retain emoji fallback"
