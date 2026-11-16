@@ -353,3 +353,23 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 .ds25-prediction-details span{display:block;font-size:10px;line-height:1.35;color:var(--ds19-soft);margin-bottom:4px}
 .ds25-prediction-details strong{display:block;font-size:12px;line-height:1.4;color:var(--text);overflow-wrap:anywhere;white-space:normal}
 @media(max-width:440px){.ds25-prediction-details{grid-template-columns:1fr}}
+
+/* V26: today's match details — scannable on small screens */
+.ds26-match-card .fixture-toggle{width:100%;text-align:left}
+.ds26-picks{display:grid;gap:10px;margin-top:12px}
+.ds26-selection{min-width:0;padding:12px;border:1px solid var(--ds19-border,#334155);border-radius:12px;background:var(--ds19-card2,transparent)}
+.ds26-pick-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.ds26-pick-number{font-size:11px;font-weight:800;letter-spacing:.02em;opacity:.8}
+.ds26-pick-main{display:grid;gap:4px;text-align:left}
+.ds26-field-caption,.ds26-pick-metrics span,.ds26-detail-field span{display:block;font-size:11px;line-height:1.35;opacity:.72}
+.ds26-pick-main strong{font-size:15px;line-height:1.45;font-weight:750;overflow-wrap:anywhere;white-space:normal}
+.ds26-pick-metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ds26-pick-metrics>div{min-width:0;display:grid;gap:4px;padding:9px;border-radius:9px;border:1px solid var(--ds19-border,#334155);text-align:left}
+.ds26-pick-metrics strong{font-size:15px;line-height:1.2}
+.ds26-pick-details{display:grid;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--ds19-border,#334155)}
+.ds26-detail-heading{font-size:12px;font-weight:800;text-align:left}
+.ds26-detail-field{min-width:0;display:grid;gap:4px;text-align:left}
+.ds26-detail-field strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere;white-space:normal}
+.ds26-last10{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ds26-last10 .ds26-detail-field{padding:9px;border:1px solid var(--ds19-border,#334155);border-radius:9px}
+@media(max-width:370px){.ds26-last10{grid-template-columns:1fr}.ds26-selection{padding:10px}}
