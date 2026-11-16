@@ -8,6 +8,7 @@ Unresolved names are reported; generated shields are not official badges.
 """
 import concurrent.futures
 import json
+import os
 import re
 import time
 import unicodedata
@@ -74,7 +75,10 @@ def slug(s):
     return re.sub(r"[^a-z0-9-]+", "", re.sub(r"\s+", "-", unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower())).strip("-") or "club"
 
 def get(url, timeout=12):
-    req = urllib.request.Request(url, headers=HEADERS)
+    headers = dict(HEADERS)
+    if url.startswith("https://api.github.com/") and os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return response.read()
 
