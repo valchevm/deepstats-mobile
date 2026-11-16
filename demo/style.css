@@ -373,3 +373,5 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 .ds26-last10{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .ds26-last10 .ds26-detail-field{padding:9px;border:1px solid var(--ds19-border,#334155);border-radius:9px}
 @media(max-width:370px){.ds26-last10{grid-template-columns:1fr}.ds26-selection{padding:10px}}
+
+.brand small::after{content:' · DEMO';color:#e6bb6b}
