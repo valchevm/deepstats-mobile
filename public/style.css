@@ -344,3 +344,5 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 .ds22-inline-crests .ds11-crest.ds15-national .ds-flag-icon{width:25px;height:18px}
 .ds22-archive-match{min-width:180px;font-size:12px}
 @media(max-width:400px){.ds22-inline-crests .ds11-crest{width:21px;height:22px;flex-basis:21px}}
+
+.ds23-archive-list{display:grid;gap:12px;margin:14px 0}.ds23-archive-card{min-width:0;padding:14px;border-radius:14px}.ds23-archive-title{font-weight:800;margin:12px 0;overflow-wrap:anywhere}.ds23-archive-title .ds22-archive-match{min-width:0;flex-wrap:wrap}.ds23-archive-pick,.ds23-archive-pager{display:flex;justify-content:space-between;align-items:center;gap:12px}.ds23-archive-pick{border-top:1px solid var(--ds19-border);padding-top:10px}.ds23-archive-pick span{overflow-wrap:anywhere}
