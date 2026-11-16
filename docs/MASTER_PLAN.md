@@ -1,5 +1,5 @@
 # DeepStats — Master System Plan
-Last reviewed: 2026-11-16
+Last reviewed: 2026-11-16 (V20)
 Repository: https://github.com/valchevm/deepstats-mobile
 Status convention: [x] Code found in repository; [ ] Not yet verified or incomplete. **Code present does not mean production validated.**
 
@@ -83,6 +83,29 @@ Google Sheets tabs referenced: `СЕЛЕКЦИИ` (today / existing full rows), 
 - [ ] If Oracle is unreachable, show clearly labeled Sheets fallback; do not imply whole-database completeness.
 - [ ] Validate no layout clipping on 320–430px screens, keyboard navigation, missing crest fallback, theme on strategies/builders/archive and PWA refresh.
 
+### V20 — one Data Analytics design, three dashboard panels, real crests (2026-11-16)
+
+- [x] One design B only: A and C choice removed from Profile and JavaScript; dark/light theme remains.
+- [x] Home first panel **Best of the Day as a complete builder** with all legs, confidence, status, real club badges/flags and combined product of odds; model P/L labelled as proposed rather than placed bet.
+- [x] Home second panel **expandable matches from A–F strategies** for today's local Sofia date, deduplicating logical picks per match and separating fixture expansion state from the all-selections view.
+- [x] Home third panel **all today's selections**, with all matches (not a 2–3-item preview); linked to the full search/filters view.
+- [x] The complete historic Oracle A–F performance panel (KPI, cumulative P/L graph, per-strategy breakdown) moved from Home into Statistics, positioned before analysis and date filters. Original Statistics analysis retained. Oracle failure is explicitly labelled unavailable, not misrepresented as a complete total.
+- [x] 9/10 and 10/10 confidence repositioned as a compact pill beside each odds badge, not oversized or overlapping the match text; also shown in builder leg rows.
+- [x] `public/crests` now contains actual club SVG logos and a manifest. `scripts/download-crests.py` downloads/cache-validates exact team badges from a public 4700+ country-organized SVG collection and TheSportsDB, writes `coverage.json`, and is scheduled/triggered through `.github/workflows/team-crests.yml`. No ambiguous best-guess club logos. Sources: `public/crests/ATTRIBUTION.md`.
+- [x] Automatic batch importer completed via GitHub Actions #2, with initial audit **277 mapped local badges among 450 team names**, including national-team names not requiring a club crest. Unresolved are itemized in coverage.json. Network fallback still resolves more badges where possible.
+- [x] Application versions updated to app/style v201 and PWA cache v29; CI `DeepStats code checks` #40 completed successfully with additional local badge manifest existence tests.
+- [ ] Do **not** claim every club has a verified real crest: `coverage.json` lists unresolved entities; implement source-aware country/club IDs and acquire verified emblems for remaining clubs.
+- [ ] Actual mobile screenshots, Vercel deployment, Oracle authenticated history, and cross-source data reconciliation remain unverified in this review.
+- [ ] Audit builder odds for all 6 live rows and check complete date-scoped daily content for strategies and selections against Google Sheets on an authenticated production account.
+
+#### V20 regression checklist
+- [ ] Home has exactly three panels (Best builder, expandable strategy matches, all selections) and never renders the Oracle history chart.
+- [ ] Statistics opens with historical A–F Oracle panel, then retains filters/date analysis and other sources.
+- [ ] Both collapsed and expanded strategy list behave on phones and show the correct selection rows per group.
+- [ ] Badge images load from local manifest where present, otherwise verified server lookup, otherwise clearly labeled fallback.
+- [ ] Confidence pills remain readable at 320px width and never obscure bookmaker odds, markets, badges or club names.
+- [ ] Check real teams in today's matches and historical archive, no fake badges or broken image icon. 
+
 ## Known technical risks to review
 1. `api/data.js` uses JSON/label-based dedupe for Sheet rows; it can retain duplicates or accidentally merge legitimate selections. Audit against Oracle identity rules.
 2. `api/oracle-stats.js` returns historical-only stats; dashboard has Oracle-to-Sheets fallback. Fallback ≠ merged totals.
@@ -112,6 +135,8 @@ For each logical GitHub change:
 | 2026-11-16 | V19: selectable A/B/C layouts, dark/light themes, five-tab nav, Profile relocation, historical A–F Oracle home KPIs, UI regression tests | App/SW JS syntax and source consistency inspected; live Node/Oracle/Vercel/Android tests pending | Verify CI and real authenticated user journeys, then P2 unified hybrid API |
 
 | 2026-11-16 | CI repair: corrected A/B/C class assertion, removed duplicated UI workflow | Live GitHub Actions #19 and #20 succeeded; production data/UI still unverified | Maintain one CI workflow and audit release in-browser |
+
+| 2026-11-16 | V20: one B design; builder/strategy/all picks home; historical Oracle stats to Statistics; compact confidence; verified real crest import | Code checks #40 passed, real crest importer #2 passed; 277/450 local verified names in coverage; production browser not tested | Verify live mobile views and resolve remaining badge identities |
 
 ## Definition of done
 - The production app shows correct live-day data combined with historical Oracle records for all views.
