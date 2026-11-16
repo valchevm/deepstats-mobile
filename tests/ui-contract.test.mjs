@@ -25,20 +25,28 @@ test('dark is default; light and dark remain selectable and persistent',()=>{
  assert.match(app,/data-set-theme="light"/);
  assert.match(css,/html\[data-theme="light"\]/);
 });
-test('concepts A B C render independently with persistent selection',()=>{
- assert.match(app,/ds19-design-'\+currentDesign/);
- for(const x of ['A','B','C'])assert.match(app,new RegExp("currentDesign==='"+x+"'"));
- assert.match(app,/data-set-design="A"/);
- assert.match(app,/data-set-design="B"/);
- assert.match(app,/data-set-design="C"/);
- assert.match(app,/localStorage\.setItem\('ds-design'/);
+test('one consistent Data Analytics B dashboard with three required sections',()=>{
+ assert.match(app,/document\.documentElement\.dataset\.design='B'/);
+ assert.doesNotMatch(app,/data-set-design="A"/);
+ assert.doesNotMatch(app,/data-set-design="C"/);
+ assert.match(app,/ds20BestBuilder\(buildersData\.proposals,dateLabel\)/);
+ assert.match(app,/ds20StrategyWindow\(strategySelections\)/);
+ assert.match(app,/Всички селекции/);
+ assert.match(app,/<details class="ds20-details">/);
 });
-test('home A-F stats read entire available Oracle history with explicit fallback',()=>{
+test('historical A-F Oracle panel lives in Statistics not the home fetch',()=>{
  assert.match(app,/strategyKeys=\['A','B','C','D1','D2','D3','E','F'\]/);
- assert.match(app,/\/api\/oracle-stats\?sources='/);
- assert.match(app,/ds19SourceLabel/);
- assert.match(app,/sheets-fallback/);
- assert.match(app,/ds19StatsPanel\(x,st,groups,/);
+ assert.match(app,/async function statistics\(\)/);
+ assert.match(app,/let historicalPanel=''/);
+ assert.match(app,/ds19StatsPanel\(full\.selected,full,/);
+ assert.match(app,/\$\{historicalPanel\}\$\{dates\(\)\}/);
+ assert.doesNotMatch(app.slice(app.indexOf('async function home(){'),app.indexOf('async function matches(){')), /\/api\/oracle-stats/);
+});
+test('compact confidence and real crest folder are wired',()=>{
+ assert.match(app,/ds20-confidence/);
+ assert.match(app,/ds20-leg-crests/);
+ assert.match(app,/fetch\('\/crests\/manifest\.json\?v=201'\)/);
+ assert.match(css,/\.ds20-confidence/);
 });
 test('new scripts and styles share the same cache-busting versions',()=>{
  const appUrl=html.match(/\/app\.js\?v=\d+/)?.[0];
@@ -46,7 +54,7 @@ test('new scripts and styles share the same cache-busting versions',()=>{
  assert.ok(appUrl&&cssUrl);
  assert.ok(sw.includes(appUrl));
  assert.ok(sw.includes(cssUrl));
- assert.match(sw,/deepstats-static-v28/);
+ assert.match(sw,/deepstats-static-v29/);
 });
 test('existing Oracle and Sheets API source files are still referenced',()=>{
  assert.match(app,/api\('dashboard'\)/);
