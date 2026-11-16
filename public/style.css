@@ -335,3 +335,12 @@ html[data-theme="light"] .ds21-builder-history{background:#fff;color:#1b3249;bor
 .ds13-match-card .ds11-fixture-top .ds-flag-icon{margin-right:4px}
 .ds15-league-title .ds-flag-icon{margin-right:4px}
 html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
+
+/* V22 club badges in detailed strategies and Oracle archive */
+.ds22-with-crests,.ds22-archive-match{display:flex;align-items:center;gap:8px}
+.ds22-inline-crests{display:inline-flex;align-items:center;gap:2px;flex:0 0 auto;white-space:nowrap}
+.ds22-inline-crests .ds11-crest{width:25px;height:26px;flex:0 0 25px;border:0;background:transparent}
+.ds22-inline-crests .ds11-crest img{width:100%;height:100%;object-fit:contain}
+.ds22-inline-crests .ds11-crest.ds15-national .ds-flag-icon{width:25px;height:18px}
+.ds22-archive-match{min-width:180px;font-size:12px}
+@media(max-width:400px){.ds22-inline-crests .ds11-crest{width:21px;height:22px;flex-basis:21px}}
