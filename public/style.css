@@ -326,3 +326,12 @@ html[data-theme="light"] .ds20-confidence{background:#e4f8ef;border-color:#8fd0b
 .ds21-pager button:disabled{opacity:.45;cursor:not-allowed}
 .ds21-warning{padding:12px;border:1px solid #ad8540;border-radius:10px;background:color-mix(in srgb,#ad8540 11%,var(--ds19-card));line-height:1.5}
 html[data-theme="light"] .ds21-builder-history{background:#fff;color:#1b3249;border-color:#d5e2ea}
+
+/* V22: authentic national and league flag-icons, with accessible emoji fallback */
+.ds-flag-icon{display:inline-block;width:21px;height:15px;object-fit:cover;vertical-align:-2px;border-radius:2px;box-shadow:0 0 0 1px #52657733;flex:0 0 auto}
+.ds11-crest.ds15-national{display:inline-flex;align-items:center;justify-content:center;background:transparent;border:0}
+.ds11-crest.ds15-national .ds-flag-icon{width:29px;height:21px;object-fit:contain;vertical-align:middle;border-radius:2px}
+.ds20-leg-crests .ds11-crest.ds15-national .ds-flag-icon{width:24px;height:18px}
+.ds13-match-card .ds11-fixture-top .ds-flag-icon{margin-right:4px}
+.ds15-league-title .ds-flag-icon{margin-right:4px}
+html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
