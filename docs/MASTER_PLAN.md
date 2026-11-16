@@ -67,8 +67,10 @@ Google Sheets tabs referenced: `СЕЛЕКЦИИ` (today / existing full rows), 
 - [x] Source implemented: real today Best selections, dates, league, fixture cards and odds still originate from Google Sheets; no UI hardcoded counts.
 - [x] Source implemented: PWA cache version v28 and asset query versions v191 updated together.
 - [x] Static JS syntax compiled in isolated V8 and source-level consistency checks passed for app/service worker and nav/asset references.
-- [x] Regression contract test source added at `tests/ui-contract.test.mjs`, invoked by `npm run check`.
-- [ ] `npm run check` execution in Node, external/browser functional tests, Vercel build/deployment, actual Oracle authenticated responses, Android light-theme screenshots and end-to-end reconciliation **not yet independently verified**.
+- [x] Regression contract test source added at `tests/ui-contract.test.mjs`, invoked by `npm run check` and existing `.github/workflows/ci.yml`.
+- [x] GitHub Actions DeepStats code checks #19 and #20 completed successfully after fixing a test assertion that expected an interpolation template while code builds a CSS class via string concatenation.
+- [x] Redundant `.github/workflows/ui-check.yml` removed; one primary CI workflow `.github/workflows/ci.yml` runs `npm run check`. This prevents duplicate per-commit CI runs.
+- [ ] External/browser functional tests, Vercel build/deployment, actual Oracle authenticated responses, Android light-theme screenshots and end-to-end reconciliation **not yet independently verified**.
 - [ ] Legacy strategies detail still consumes `api/data.js` (Sheets). The home A-F historical summary consumes Oracle; do not equate those reports without parity checks.
 - [ ] Existing `api/data.js` mixes current and historical Sheets; unified API migration remains open (P2-01).
 
@@ -108,6 +110,8 @@ For each logical GitHub change:
 |---|---|---|---|
 | 2026-11-15 | Initial audited master plan + CSV handoff created from GitHub source inspection | Source code inspection only; no production runtime validation | P0 baseline and full integration audit |
 | 2026-11-16 | V19: selectable A/B/C layouts, dark/light themes, five-tab nav, Profile relocation, historical A–F Oracle home KPIs, UI regression tests | App/SW JS syntax and source consistency inspected; live Node/Oracle/Vercel/Android tests pending | Verify CI and real authenticated user journeys, then P2 unified hybrid API |
+
+| 2026-11-16 | CI repair: corrected A/B/C class assertion, removed duplicated UI workflow | Live GitHub Actions #19 and #20 succeeded; production data/UI still unverified | Maintain one CI workflow and audit release in-browser |
 
 ## Definition of done
 - The production app shows correct live-day data combined with historical Oracle records for all views.
