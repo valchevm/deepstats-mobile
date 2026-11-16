@@ -346,3 +346,10 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 @media(max-width:400px){.ds22-inline-crests .ds11-crest{width:21px;height:22px;flex-basis:21px}}
 
 .ds23-archive-list{display:grid;gap:12px;margin:14px 0}.ds23-archive-card{min-width:0;padding:14px;border-radius:14px}.ds23-archive-title{font-weight:800;margin:12px 0;overflow-wrap:anywhere}.ds23-archive-title .ds22-archive-match{min-width:0;flex-wrap:wrap}.ds23-archive-pick,.ds23-archive-pager{display:flex;justify-content:space-between;align-items:center;gap:12px}.ds23-archive-pick{border-top:1px solid var(--ds19-border);padding-top:10px}.ds23-archive-pick span{overflow-wrap:anywhere}
+
+/* V25: full, literal source predictions in expanded match cards */
+.ds25-prediction-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 4px;text-align:left}
+.ds25-prediction-details>div{min-width:0;border:1px solid var(--ds19-border);border-radius:9px;padding:9px;background:var(--ds19-card2)}
+.ds25-prediction-details span{display:block;font-size:10px;line-height:1.35;color:var(--ds19-soft);margin-bottom:4px}
+.ds25-prediction-details strong{display:block;font-size:12px;line-height:1.4;color:var(--text);overflow-wrap:anywhere;white-space:normal}
+@media(max-width:440px){.ds25-prediction-details{grid-template-columns:1fr}}
