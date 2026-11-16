@@ -19,6 +19,8 @@ export default async function handler(req,res){
  if(!['matches','selections','best','strategies','builders','builderlegs','odds'].includes(kind))return res.status(400).json({error:'Invalid kind'});
  const limit=Number(req.query.limit??50),offset=Number(req.query.offset??0);
  if(!Number.isInteger(limit)||limit<1||limit>100||!Number.isInteger(offset)||offset<0||offset>1000000)return res.status(400).json({error:'Invalid pagination'});
+ const builderType=String(req.query.type||'');
+ if(builderType&&(!['BEST_PROPOSAL','RECORDED'].includes(builderType)||kind!=='builders'))return res.status(400).json({error:'Invalid builder type'});
  const from=String(req.query.from||''),to=String(req.query.to||'');
  if((from&&!/^\d{4}-\d{2}-\d{2}$/.test(from))||(to&&!/^\d{4}-\d{2}-\d{2}$/.test(to)))return res.status(400).json({error:'Invalid dates'});
  const binds={rowOffset:offset,rowLimit:limit},where=[];
@@ -59,9 +61,11 @@ export default async function handler(req,res){
     ORDER BY s.MATCH_DATE DESC,ss.STRATEGY_ID,m.MATCH_LABEL,s.SELECTION_LABEL
     OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
   }else if(kind==='builders'){
+   const builderFilter=builderType?(filter?filter+' AND b.BUILDER_TYPE=:builderType':' WHERE b.BUILDER_TYPE=:builderType'):filter;
+   if(builderType)binds.builderType=builderType;
    sql=`SELECT b.BUILDER_ID,TO_CHAR(b.BUILDER_DATE,'YYYY-MM-DD') AS MATCH_DATE,b.BUILDER_TYPE,b.ODDS,b.RESULT_STATUS,b.PROFIT_UNITS,COUNT(l.LEG_NUMBER) AS LEGS
     FROM ADMIN.DS_BUILDERS b LEFT JOIN ADMIN.DS_BUILDER_LEGS l ON l.BUILDER_ID=b.BUILDER_ID
-    ${filter.replaceAll('MATCH_DATE','b.BUILDER_DATE')}
+    ${builderFilter.replaceAll('MATCH_DATE','b.BUILDER_DATE')}
     GROUP BY b.BUILDER_ID,b.BUILDER_DATE,b.BUILDER_TYPE,b.ODDS,b.RESULT_STATUS,b.PROFIT_UNITS
     ORDER BY b.BUILDER_DATE DESC,b.BUILDER_TYPE,b.BUILDER_ID
     OFFSET :rowOffset ROWS FETCH NEXT :rowLimit ROWS ONLY`;
