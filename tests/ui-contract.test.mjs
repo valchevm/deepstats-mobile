@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join,dirname} from 'node:path';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
@@ -62,4 +62,17 @@ test('existing Oracle and Sheets API source files are still referenced',()=>{
  assert.match(app,/api\('strategies'/);
  assert.match(app,/\/api\/history\?kind=/);
  assert.match(app,/api\('statistics'/);
+});
+
+test('local club badge manifest only references existing files and tracks unresolved teams',()=>{
+ const map=JSON.parse(read('public/crests/manifest.json'));
+ const report=JSON.parse(read('public/crests/coverage.json'));
+ assert.ok(report.total>=report.resolved);
+ assert.ok(report.resolved>=250,'expected initial verified SVG batch');
+ assert.equal(Object.keys(map).length,report.resolved);
+ for(const [team,url] of Object.entries(map)){
+  assert.ok(team && /^\/crests\/[a-z0-9._-]+\.(svg|png|jpg|webp)$/.test(url),'bad manifest URL '+url);
+  assert.ok(existsSync(join(root,'public',url.slice(1))),'missing local badge '+url);
+ }
+ assert.ok(Array.isArray(report.unresolved));
 });
