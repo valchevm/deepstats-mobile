@@ -27,6 +27,19 @@ SECONDARY_TREE = "https://api.github.com/repos/luukhopman/football-logos/git/tre
 SECONDARY_RAW = "https://raw.githubusercontent.com/luukhopman/football-logos/refs/heads/master/"
 HEADERS = {"User-Agent": "DeepStats-real-football-crest-cache/20", "Accept": "application/vnd.github+json"}
 ALIASES = {
+    "west ham united": "West Ham",
+    "wrexham": "Wrexham AFC",
+    "arsenal w": "Arsenal",
+    "barcelona w": "Barcelona",
+    "sl benfica w": "Benfica",
+    "austria wien w": "Austria Wien",
+    "nottingham forest u21": "Nottingham Forest",
+    "strasbourg": "RC Strasbourg Alsace",
+    "monaco": "AS Monaco",
+    "new york rb": "New York Red Bulls",
+    "new york city": "New York City FC",
+    "inter club d'escaldes": "Inter Escaldes",
+    "real oviedo": "Oviedo",
     "leicester city": "leicester",
     "bayer 04 leverkusen": "bayer leverkusen",
     "fc bayern münchen": "bayern munich",
@@ -52,7 +65,10 @@ ALIASES = {
 
 def norm(s):
     s = unicodedata.normalize("NFKD", str(s)).encode("ascii", "ignore").decode().lower()
-    return re.sub(r"[^a-z0-9]+", "", re.sub(r"\b(fc|cf|sc|fk|afc)\b", "", s))
+    # Source SVG filenames contain underscores, which Python treats as word characters.
+    s = s.replace("_", " ").replace("-", " ").replace(".", " ").replace("&", " and ")
+    s = re.sub(r"\b(fc|cf|sc|fk|afc|ac|sv|gnk|rsc|kv|kvc|cd|rc|ca|sd|raal)\b", "", s)
+    return re.sub(r"[^a-z0-9]+", "", s)
 
 def slug(s):
     return re.sub(r"[^a-z0-9-]+", "", re.sub(r"\s+", "-", unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower())).strip("-") or "club"
@@ -125,6 +141,10 @@ def source_path(team, idx):
         matches = idx.get(norm(candidate), [])
         if len(matches) == 1:
             return matches[0]
+        if len(matches) > 1:
+            exact = [p for p in matches if Path(p).stem.replace("_", " ").casefold() == candidate.casefold()]
+            if len(exact) == 1:
+                return exact[0]
     return None
 
 def second_source(team, index):
