@@ -16,6 +16,27 @@ ROOT.mkdir(parents=True,exist_ok=True)
 CODES=json.loads((ROOT/"codes.json").read_text(encoding="utf-8"))
 SOURCE="https://raw.githubusercontent.com/lipis/flag-icons/main/flags/4x3/"
 CODES_UNIQUE=sorted(set(CODES.values()))
+TREE="https://api.github.com/repos/lipis/flag-icons/git/trees/main?recursive=1"
+
+def available_country_codes():
+    try:
+        request=urllib.request.Request(TREE,headers={"User-Agent":"DeepStats-flags/22","Accept":"application/vnd.github+json"})
+        with urllib.request.urlopen(request,timeout=25) as response:
+            data=json.loads(response.read())
+        if data.get("truncated"):
+            raise ValueError("Incomplete flag index")
+        candidates=set()
+        for item in data.get("tree",[]):
+            path=item.get("path","")
+            m=re.fullmatch(r"flags/4x3/([a-z]{2}(?:-[a-z]{3})?)\.svg",path)
+            if m and item.get("type")=="blob":
+                candidates.add(m.group(1))
+        if len(candidates)<220:
+            raise ValueError("Insufficient flags in upstream index")
+        return sorted(candidates|set(CODES_UNIQUE))
+    except Exception as ex:
+        print("Full-world flag index unavailable; using known countries only:",str(ex)[:150])
+        return CODES_UNIQUE
 
 def get_flag(code):
     if not re.fullmatch(r"[a-z]{2}(?:-[a-z]{3})?",code):
@@ -45,12 +66,13 @@ def get_flag(code):
         return code,False,type(ex).__name__
 
 def main():
+    codes=available_country_codes()
     results=[]
     with ThreadPoolExecutor(max_workers=12) as executor:
-        for f in as_completed([executor.submit(get_flag,code) for code in CODES_UNIQUE]):
+        for f in as_completed([executor.submit(get_flag,code) for code in codes]):
             results.append(f.result())
     missing=sorted(code for code,ok,reason in results if not ok)
-    report={"total":len(CODES_UNIQUE),"resolved":len(CODES_UNIQUE)-len(missing),"unresolved":missing,"source":"lipis/flag-icons, 4x3 ISO SVG plus gb-eng/gb-sct/gb-wls/gb-nir","accuracy":"Only listed codes; missing files retain emoji fallback"}
+    report={"total":len(codes),"resolved":len(codes)-len(missing),"mappedCountries":len(CODES_UNIQUE),"unresolved":missing,"source":"lipis/flag-icons, 4x3 ISO SVG plus gb-eng/gb-sct/gb-wls/gb-nir","accuracy":"Only listed codes; missing files retain emoji fallback"}
     (ROOT/"coverage.json").write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
     print("Country flags:",report["resolved"],"/",report["total"],"missing:",missing)
     if report["resolved"]<10:
