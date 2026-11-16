@@ -312,3 +312,17 @@ html[data-theme="light"] .ds20-confidence{background:#e4f8ef;border-color:#8fd0b
  .ds20-leg-crests{min-width:47px;flex-basis:47px}
  .ds20-leg-crests .ds11-crest{width:22px;height:23px;flex-basis:22px}
 }
+
+/* V21 — historical builder archive and partial-source messaging */
+.ds21-builder-section{margin:18px 0 24px}
+.ds21-builder-section>h3{font-size:14px;font-weight:800;margin:0 0 10px;color:var(--text)}
+.ds21-builder-section .match-list{display:grid;gap:10px}
+.ds21-builder-history{border:1px solid var(--ds19-border);border-radius:13px;padding:14px;background:var(--ds19-card);color:var(--text)}
+.ds21-builder-history .match-title{font-weight:800;font-size:14px;margin:9px 0}
+.ds21-builder-history .match-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ds21-pager{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 0}
+.ds21-pager>span{font-size:11px;color:var(--ds19-soft);white-space:nowrap}
+.ds21-pager button{font-size:12px;min-width:88px}
+.ds21-pager button:disabled{opacity:.45;cursor:not-allowed}
+.ds21-warning{padding:12px;border:1px solid #ad8540;border-radius:10px;background:color-mix(in srgb,#ad8540 11%,var(--ds19-card));line-height:1.5}
+html[data-theme="light"] .ds21-builder-history{background:#fff;color:#1b3249;border-color:#d5e2ea}
