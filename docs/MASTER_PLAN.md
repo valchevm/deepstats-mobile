@@ -106,6 +106,16 @@ Google Sheets tabs referenced: `СЕЛЕКЦИИ` (today / existing full rows), 
 - [ ] Confidence pills remain readable at 320px width and never obscure bookmaker odds, markets, badges or club names.
 - [ ] Check real teams in today's matches and historical archive, no fake badges or broken image icon. 
 
+### V21 — Builder history repair (2026-11-16)
+- [x] Fixed a frontend regression: `builders()` had attempted to interpolate `historicalPanel`, a variable declared only inside `statistics()`. Removed the undefined reference from Builders and restored the complete A–F historical panel rendering in Statistics.
+- [x] The Builders entry from Profile defaults to **All dates**, instead of silently filtering to today. Day/period filters and pagination reset consistently.
+- [x] Builders now independently loads current/legacy Google Sheets via `/api/data?kind=builders` and archived Oracle `/api/history?kind=builders&type=BEST_PROPOSAL|RECORDED`. Each source is visibly labeled; partial outage is surfaced rather than silently showing a complete-looking empty history.
+- [x] Oracle `api/history.js` filters `BUILDER_TYPE` server-side before paginating. Type is validated against `BEST_PROPOSAL` and `RECORDED` to avoid empty pages caused by client filtering of mixed record types.
+- [x] Added regression tests for builder rendering, source routing, archive filtering and pagination. V21 asset versions are app/style v211, SW cache v30.
+- [x] GitHub Actions #52 passed (static code/asset tests; not a live Oracle end-to-end confirmation).
+- [ ] Verify authenticated production Oracle connectivity, archived row totals and every history page; compare with original Sheets and Oracle data to ensure no omission/duplication.
+- [ ] Add a consistent history builder identifier/linked leg drill-down to avoid potential duplicate display across Google Sheets and Oracle sources.
+
 ## Known technical risks to review
 1. `api/data.js` uses JSON/label-based dedupe for Sheet rows; it can retain duplicates or accidentally merge legitimate selections. Audit against Oracle identity rules.
 2. `api/oracle-stats.js` returns historical-only stats; dashboard has Oracle-to-Sheets fallback. Fallback ≠ merged totals.
@@ -137,6 +147,8 @@ For each logical GitHub change:
 | 2026-11-16 | CI repair: corrected A/B/C class assertion, removed duplicated UI workflow | Live GitHub Actions #19 and #20 succeeded; production data/UI still unverified | Maintain one CI workflow and audit release in-browser |
 
 | 2026-11-16 | V20: one B design; builder/strategy/all picks home; historical Oracle stats to Statistics; compact confidence; verified real crest import | Code checks #40 passed, real crest importer #2 passed; 277/450 local verified names in coverage; production browser not tested | Verify live mobile views and resolve remaining badge identities |
+
+| 2026-11-16 | V21: repaired Builders crash and all-date history with typed Oracle pagination; preserved A–F statistics | GitHub Actions #52 passed; authenticated Oracle/Sheets runtime remains unverified | Verify real history data counts and scrolling on Android |
 
 ## Definition of done
 - The production app shows correct live-day data combined with historical Oracle records for all views.
