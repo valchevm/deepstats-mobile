@@ -27,7 +27,7 @@ def get_flag(code):
         request=urllib.request.Request(SOURCE+code+".svg",headers={"User-Agent":"DeepStats-flags/21"})
         with urllib.request.urlopen(request,timeout=14) as response:
             data=response.read()
-        if not 100<len(data)<150000:
+        if not 100<len(data)<250000:
             return code,False,"invalid-size"
         root=ET.fromstring(data)
         if not root.tag.endswith("svg"):
