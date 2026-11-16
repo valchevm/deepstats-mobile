@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {join,dirname} from 'node:path';
+import vm from 'node:vm';
 const root=join(dirname(fileURLToPath(import.meta.url)),'..');
 const read=path=>readFileSync(join(root,path),'utf8');
 const html=read('public/index.html');
@@ -45,7 +46,7 @@ test('historical A-F Oracle panel lives in Statistics not the home fetch',()=>{
 test('compact confidence and real crest folder are wired',()=>{
  assert.match(app,/ds20-confidence/);
  assert.match(app,/ds20-leg-crests/);
- assert.match(app,/fetch\('\/crests\/manifest\.json\?v=201'\)/);
+ assert.match(app,/fetch\('\/crests\/manifest\.json\?v=221'\)/);
  assert.match(css,/\.ds20-confidence/);
 });
 test('new scripts and styles share the same cache-busting versions',()=>{
@@ -54,7 +55,7 @@ test('new scripts and styles share the same cache-busting versions',()=>{
  assert.ok(appUrl&&cssUrl);
  assert.ok(sw.includes(appUrl));
  assert.ok(sw.includes(cssUrl));
- assert.match(sw,/deepstats-static-v30/);
+ assert.match(sw,/deepstats-static-v31/);
 });
 test('existing Oracle and Sheets API source files are still referenced',()=>{
  assert.match(app,/api\('builders'/);
@@ -94,4 +95,38 @@ test('Oracle builder API filters builder types before paging',()=>{
  assert.match(history,/RECORDED/);
  assert.match(history,/builderFilter\.replaceAll\('MATCH_DATE','b\.BUILDER_DATE'\)/);
  assert.match(history,/b\.BUILDER_TYPE=:builderType/);
+});
+
+test('national teams and home nations resolve to genuine SVG flag codes without mistaking clubs for countries',()=>{
+ const start=app.indexOf('const dsCountryMap=');
+ const end=app.indexOf('function dsBuilderOdds(',start);
+ assert.ok(start>0&&end>start,'country mapping must be self-contained');
+ const code=app.slice(start,end)+";({dsCountry,dsNationalFlag,dsFlagHTML,dsLeagueHTML,dsCountryCodes})";
+ const scope=vm.runInNewContext(code,{Intl,esc:x=>String(x)});
+ assert.equal(scope.dsNationalFlag('England U21')[2],'gb-eng');
+ assert.equal(scope.dsNationalFlag('Scotland')[2],'gb-sct');
+ assert.equal(scope.dsNationalFlag('Wales')[2],'gb-wls');
+ assert.equal(scope.dsNationalFlag('Northern Ireland')[2],'gb-nir');
+ assert.equal(scope.dsNationalFlag('Bulgaria')[2],'bg');
+ assert.equal(scope.dsNationalFlag('Serbia')[2],'rs');
+ assert.equal(scope.dsNationalFlag('Tonga')[2],'to');
+ assert.equal(scope.dsNationalFlag('FC Andorra'),null);
+ assert.equal(scope.dsNationalFlag('Inter Miami'),null);
+ assert.match(scope.dsLeagueHTML('Spain - LaLiga'),/\/flags\/es\.svg/);
+ assert.match(scope.dsFlagHTML(scope.dsCountry('Scotland')),/\/flags\/gb-sct\.svg/);
+});
+test('world flag manifest lists all locally cached SVGs and non-country territory flags separately',()=>{
+ const codes=JSON.parse(read('public/flags/codes.json'));
+ const report=JSON.parse(read('public/flags/coverage.json'));
+ assert.ok(Object.keys(codes).length>=160);
+ assert.equal(codes.england,'gb-eng');
+ assert.equal(codes.scotland,'gb-sct');
+ assert.equal(codes.wales,'gb-wls');
+ assert.equal(codes['northern ireland'],'gb-nir');
+ assert.ok(report.total>=250,'whole-country SVG catalog should be available');
+ assert.ok(report.resolved>=250);
+ for(const code of [...new Set(Object.values(codes))]){
+  assert.match(code,/^[a-z]{2}(?:-[a-z]{3})?$/);
+  if(!report.unresolved.includes(code))assert.ok(existsSync(join(root,'public','flags',code+'.svg')),'flag missing: '+code);
+ }
 });
