@@ -108,9 +108,22 @@ function ds19StatsPanel(x,st,groups,chartFirst){return '<section class="ds19-his
 function dsStrategyAccordion(items,title,kind,emptyMessage){
  const games=groupedMatches(items.map(p=>({...p,section:kind})));
  const open=state.strategyWindows?.[kind]===true;
- return '<section class="ds-daily-window ds-strategy-accordion"><button type="button" class="ds-strategy-accordion-toggle" data-strategy-window="'+kind+'" aria-expanded="'+open+'"><span><strong>'+title+'</strong><small>'+fmt(items.length)+' селекции · '+fmt(games.length)+' срещи</small></span><span class="ds-strategy-chevron">'+(open?'⌄':'›')+'</span></button>'+(open?'<div class="match-list">'+(games.length?games.map(groupedCard).join(''):empty(emptyMessage))+'</div>':'')+'</section>';
+ const isBeta=kind.includes('beta');
+ const titleClean=title.replace(' · ',' — ');
+ return '<section class="ds-daily-window ds-strategy-accordion ds-strategy-accordion-pro'+(open?' is-open':'')+'"><button type="button" class="ds-strategy-accordion-toggle ds-strategy-pro-toggle" data-strategy-window="'+kind+'" aria-expanded="'+open+'" aria-controls="strategy-content-'+kind+'"><span class="ds-strategy-pro-mark '+(isBeta?'is-beta':'is-af')+'">'+(isBeta?'β':'A–F')+'</span><span class="ds-strategy-pro-copy"><strong>'+esc(titleClean)+'</strong><small>'+fmt(games.length)+' срещи <span aria-hidden="true">·</span> '+fmt(items.length)+' селекции</small></span><span class="ds-strategy-pro-action"><span class="ds-strategy-pro-action-text">'+(open?'Скрий':'Виж срещите')+'</span><span class="ds-strategy-pro-arrow" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></svg></span></span></button><div class="ds-strategy-pro-content" id="strategy-content-'+kind+'"'+(open?'':' hidden')+'><div class="match-list">'+(games.length?games.map(groupedCard).join(''):empty(emptyMessage))+'</div></div></section>';
 }
-function bindStrategyAccordions(){document.querySelectorAll('[data-strategy-window]').forEach(b=>b.onclick=()=>{state.strategyWindows=state.strategyWindows||{};const k=b.dataset.strategyWindow;state.strategyWindows[k]=!state.strategyWindows[k];render()})}
+function bindStrategyAccordions(){
+ document.querySelectorAll('[data-strategy-window]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.strategyWindow,section=b.closest('.ds-strategy-accordion-pro'),panel=section?.querySelector('.ds-strategy-pro-content');
+  if(!section||!panel)return;
+  state.strategyWindows=state.strategyWindows||{};
+  const open=!state.strategyWindows[k];state.strategyWindows[k]=open;
+  section.classList.toggle('is-open',open);b.setAttribute('aria-expanded',String(open));
+  const label=b.querySelector('.ds-strategy-pro-action-text');if(label)label.textContent=open?'Скрий':'Виж срещите';
+  panel.hidden=!open;
+  if(open){bindFixtures();hydrateCrests();}
+ });
+}
 async function home(){
  const day='&from='+encodeURIComponent(today())+'&to='+encodeURIComponent(today());
  const [buildersData,strategyData,betaData]=await Promise.all([api('builders',day),api('strategies',day),api('beta',day)]);
