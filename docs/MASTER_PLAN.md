@@ -156,3 +156,14 @@ For each logical GitHub change:
 - Daily automated import and a manually re-runnable job complete with visible audit evidence.
 - No historical rows lost, duplicate bets incorrectly counted, unreported partial data, or secrets exposed.
 - Backup, restore, alerting, documentation and mobile smoke tests completed.
+
+
+### V27 — professional match feed and responsive navigation (2026-11-17)
+- [x] Home shows Best of the Day followed immediately by strategy A–F match cards; removed the strategy accordion and all-selections home panel.
+- [x] Matches screen draws only the union of Best builder legs and A–F strategy selections, deduplicated by date, fixture and selection. Full raw selections remain available to analytics and storage; they are not deleted.
+- [x] Match cards omit source-debugging captions, empty OddAlerts attribution, and empty prediction-for labels. Display selection, decimal odds, original confidence out of 10 and last-ten ratios only when present.
+- [x] Profile builder/archive shortcuts and Oracle archive category tabs use equal-column responsive grids and wrap long labels rather than overlap.
+- [ ] Confirm whether upstream builder/strategy rows contain valid homeLast10/awayLast10 values. Never synthesize 6/10 or 10/10 without source data.
+- [ ] Verify on real Android screens (320, 360, 390, 430 px), dark/light themes, long translated labels, date filters, history pagination, login and PWA cache refresh.
+- [ ] Validate actual live Google Sheets and Oracle data; UI source-level checks alone do not confirm production parity.
+- [ ] Release to main/Vercel only after CI and visual checks.
