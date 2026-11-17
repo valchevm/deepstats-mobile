@@ -427,3 +427,40 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 .ds-daily-window .ds19-section-head h2,.ds-beta-match-window .ds19-section-head h2{font-size:17px}
 .ds-beta-pick-label{font-size:10px;letter-spacing:.3px;font-weight:800;color:#80c8ff;margin-bottom:7px}
 @media(max-width:440px){.ds-pro-best-head{padding:19px 16px}.ds-pro-best-head h2{font-size:21px}.ds-pro-best-summary>div{padding:14px 9px}.ds-pro-best-summary strong{font-size:15px}.ds-pro-best-summary>div:first-child strong{font-size:23px}.ds-pro-legs{padding:2px 14px}.ds-pro-best-foot{padding:14px;flex-wrap:wrap}.ds-daily-window,.ds-beta-match-window{padding:11px}}
+
+/* vNext: premium accessible match accordions */
+.ds-premium-fixture{border:1px solid var(--border,#2b4054);border-radius:17px;background:var(--card,#142638);margin:0 0 12px;overflow:hidden;box-shadow:0 3px 15px #0000000d;transition:border-color .18s,box-shadow .18s}
+.ds-premium-fixture.is-open{border-color:#5087ae;box-shadow:0 10px 30px #00000020}
+.ds-premium-toggle{display:block;width:100%;border:0;background:transparent;color:inherit;padding:17px 17px 13px;text-align:left;cursor:pointer;font:inherit}
+.ds-premium-toggle:focus-visible{outline:2px solid #70b6e9;outline-offset:-3px}
+.ds-premium-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted,#8ca7bd);font-size:11px;line-height:1.5}
+.ds-premium-topline>span{min-width:0}
+.ds-premium-topline>span:last-child{white-space:nowrap}
+.ds-premium-teams{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);align-items:center;gap:8px;padding:18px 0}
+.ds-premium-teams>span{display:flex;align-items:center;gap:9px;min-width:0;font-size:14px;line-height:1.35}
+.ds-premium-teams>span:last-child{justify-content:flex-end;text-align:right}
+.ds-premium-teams>span b{overflow-wrap:anywhere;font-weight:750}
+.ds-premium-teams>span img{width:26px;height:26px;object-fit:contain;flex-shrink:0}
+.ds-premium-teams>i{font-size:10px;color:#8097aa;font-style:normal;text-align:center;font-weight:800}
+.ds-premium-summary{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--border,#294153);padding-top:12px;font-size:11px;color:var(--muted,#9bb0c2)}
+.ds-premium-open-label{color:#6db8ee;font-weight:750}
+.ds-premium-chevron{display:inline-block;margin-left:5px;transition:transform .18s}
+.is-open .ds-premium-chevron{transform:rotate(180deg)}
+.ds-premium-body{border-top:1px solid var(--border,#2b4054);padding:13px 14px 15px;background:var(--surface,#0d1d2d)}
+.ds-premium-picks{display:grid;gap:10px}
+.ds-premium-pick{border:1px solid var(--border,#2d4559);border-radius:12px;padding:14px;background:var(--card,#172a3e);min-width:0}
+.ds-premium-pick-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.ds-premium-pick-source{font-size:10px;line-height:1.4;color:#6db8ee;font-weight:800;overflow-wrap:anywhere}
+.ds-premium-pick-title{display:block;font-size:14px;line-height:1.5;margin-bottom:14px;overflow-wrap:anywhere}
+.ds-premium-pick-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ds-premium-pick-grid>div{padding:11px 12px;border:1px solid var(--border,#30495d);border-radius:9px;display:flex;flex-direction:column;gap:5px}
+.ds-premium-pick-grid small{color:var(--muted,#94aabd);font-size:10px}
+.ds-premium-pick-grid b{font-size:17px;font-variant-numeric:tabular-nums}
+.ds-premium-form{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ds-premium-form span{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:10px;color:var(--muted,#9ab1c4);min-width:0;overflow-wrap:anywhere}
+.ds-premium-form b{font-size:12px;color:var(--text,#e9f2fa)}
+.ds-premium-body>.dsms-entry{margin-top:12px;width:100%;border-radius:10px;min-height:42px}
+.ds-daily-window,.ds-beta-match-window{background:transparent;border:0;box-shadow:none;padding:0;margin-bottom:28px}
+.ds-daily-window .ds19-section-head,.ds-beta-match-window .ds19-section-head{padding:0 2px 12px;border-bottom:1px solid var(--border,#2b4258)}
+@media(min-width:680px){.ds-premium-picks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.ds-premium-fixture,.ds-premium-chevron{transition:none}}
