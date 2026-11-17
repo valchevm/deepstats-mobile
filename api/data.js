@@ -1,4 +1,4 @@
-import {access,sheets,read,readFrom,ARCHIVE_ID,ID} from './_sheets.js';
+import {access,sheets,read,readFrom,ARCHIVE_ID,ID} from '../lib/_sheets.js';
 import {timingSafeEqual} from 'node:crypto';
 const clean=x=>String(x??'').trim().toLocaleLowerCase('bg-BG').replace(/[–—−]/g,'-').replace(/\s+/g,' ');
 const iso=x=>{const s=String(x||'');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=s.match(/^(\d{2})[.\/-](\d{2})[.\/-](\d{4})$/);return m?m[3]+'-'+m[2]+'-'+m[1]:s};
