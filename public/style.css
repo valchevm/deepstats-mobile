@@ -464,3 +464,17 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 .ds-daily-window .ds19-section-head,.ds-beta-match-window .ds19-section-head{padding:0 2px 12px;border-bottom:1px solid var(--border,#2b4258)}
 @media(min-width:680px){.ds-premium-picks{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.ds-premium-fixture,.ds-premium-chevron{transition:none}}
+
+/* Restore complete fixture information; only the additional-selections control changes */
+.ds-smooth-fixture{overflow:hidden;border-radius:17px}
+.ds-smooth-fixture-head{padding:0}
+.ds-smooth-fixture .ds26-picks{display:grid;gap:10px}
+.ds-smooth-fixture .ds26-selection{width:100%}
+.ds-smooth-expand{appearance:none;display:flex;align-items:center;justify-content:space-between;gap:12px;width:calc(100% - 28px);margin:12px 14px 10px;padding:12px 15px;border:1px solid var(--border,#38516a);border-radius:12px;background:var(--surface,#162b40);color:var(--text,#eaf3fb);font:inherit;font-size:12px;font-weight:750;text-align:left;cursor:pointer;transition:background .2s,border-color .2s,transform .2s,box-shadow .2s}
+.ds-smooth-expand:hover{background:var(--card,#213c55);border-color:#5594c2;box-shadow:0 3px 12px #00000015}
+.ds-smooth-expand:active{transform:scale(.99)}
+.ds-smooth-expand:focus-visible{outline:2px solid #6bb9f3;outline-offset:2px}
+.ds-smooth-expand-icon{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:#5594c21b;color:#69b9ed;flex:none;transition:transform .22s ease,background .22s}
+.ds-smooth-expand[aria-expanded=true] .ds-smooth-expand-icon{transform:rotate(180deg);background:#5594c235}
+.ds-smooth-fixture>.dsms-entry{margin-top:8px}
+@media(prefers-reduced-motion:reduce){.ds-smooth-expand,.ds-smooth-expand-icon{transition:none}}
