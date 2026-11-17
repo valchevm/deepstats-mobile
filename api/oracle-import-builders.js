@@ -1,5 +1,5 @@
 import {timingSafeEqual,createHash} from 'node:crypto';
-import {sheets,read} from './_sheets.js';
+import {sheets,read} from '../lib/_sheets.js';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
