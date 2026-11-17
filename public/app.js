@@ -88,17 +88,26 @@ function ds19StatsCards(x){return '<div class="ds19-stat-grid">'+[
  ['Селекции',fmt(x.count),'neutral'],['Уредени',fmt(x.settled),'neutral'],['Победи',fmt(x.wins),'positive'],['Загуби',fmt(x.losses),'negative'],['WR',fmt(x.wr)+'%','neutral'],['Yield',signed(x.yield)+'%',color(x.yield)],['P/L',signed(x.profit)+' u',color(x.profit)]
 ].map(([label,value,cl])=>'<div class="ds19-stat '+cl+'"><span>'+label+'</span><strong>'+value+'</strong></div>').join('')+'</div>'}
 function ds19StrategyList(groups){return '<div class="ds19-strategy-list">'+groups.map(g=>'<button class="ds19-strategy-row" data-open="'+esc(g.key)+'"><span class="ds19-strategy-code">'+esc(g.key)+'</span><span class="ds19-strategy-name"><b>'+esc(g.name)+'</b><small>'+fmt(g.count)+' селекции · '+fmt(g.wr)+'% WR</small></span><span class="ds19-strategy-result '+color(g.profit)+'">'+signed(g.profit)+' u<small>'+signed(g.yield)+'% Yield</small></span></button>').join('')+'</div>'}
-function ds20BestBuilder(proposals,dateLabel){const p=(proposals||[]).find(x=>x.date===today());return '<section class="ds19-best ds20-best"><div class="ds19-section-head"><h2><span class="ds14-luxe-symbol">✧</span> Best of the Day</h2><span>'+esc(dateLabel)+'</span></div>'+(p&&p.items?.length?dsBuilderCard(p):'<div class="ds20-empty">'+empty('За днес няма предложен Best of the Day билдър.')+'</div>')+'<button class="ds19-see-all" data-goto="builders">История на Best и билдърите ›</button></section>'}
+function ds20BestBuilder(proposals,dateLabel){
+ const p=(proposals||[]).find(x=>x.date===today()),items=p?.items||[],odds=items.length?dsBuilderOdds(items):null;
+ const legs=items.map((x,i)=>'<div class="ds-pro-leg"><span class="ds-pro-index">'+String(i+1).padStart(2,'0')+'</span><div class="ds-pro-leg-main"><strong>'+esc(x.match||'')+'</strong><small>'+esc(shortPick(x.selection,x.match))+'</small></div><div class="ds-pro-leg-side"><b>'+dsOddsLabel(Number(x.odds)>1?Number(x.odds):null)+'</b><small>'+esc(confidence(x))+'/10</small></div></div>').join('');
+ return '<section class="ds-pro-best"><div class="ds-pro-best-head"><div><span class="ds-pro-eyebrow">DEEPSTATS · DAILY SELECTION</span><h2>✧ Best of the Day</h2><p>'+esc(dateLabel)+' · Подбрани селекции</p></div><span class="ds-pro-best-tag">ДНЕС</span></div>'+(items.length?'<div class="ds-pro-best-summary"><div><span>Общ коефициент</span><strong>'+dsOddsLabel(odds)+'</strong></div><div><span>Селекции</span><strong>'+items.length+'</strong></div><div><span>Статус</span><strong>'+esc(dsBuilderStatus(items,p.date)==='pending'?'Предстоящ':'Отчетен')+'</strong></div></div><div class="ds-pro-legs">'+legs+'</div><div class="ds-pro-best-foot"><span>Информационен модел · не е потвърден залог</span><button data-goto="builders">Всички билдъри ›</button></div>':'<div class="ds-pro-empty">Няма предложен Best of the Day за днешната дата.</div>')+'</section>';
+}
 function ds20StrategyMatches(groups){const matched=new Map();for(const g of groups||[]){for(const item of g.items||[]){const k=[item.date,item.match,item.selection].join('|');if(!matched.has(k))matched.set(k,{...item,strategies:[g.key]});else if(!matched.get(k).strategies.includes(g.key))matched.get(k).strategies.push(g.key)}}return [...matched.values()]}
 function ds20StrategyWindow(items){const games=groupedMatches(items.map(p=>({...p,section:'strategy'})));return '<section class="ds19-daily ds20-strategies"><div class="ds19-fixtures">'+(games.length?games.map(groupedCard).join(''):empty('Няма мачове по стратегиите за днес.'))+'</div></section>'}
 function ds19StatsPanel(x,st,groups,chartFirst){return '<section class="ds19-history"><div class="ds19-section-head"><h2>Стратегии A–F · цял период</h2><span class="ds19-source">'+esc(ds19SourceLabel(st))+'</span></div>'+ds19StatsCards(x)+(chartFirst?'<div class="ds19-chart-wrap">'+chart(st.daily||[])+'</div>':'')+'<div class="ds19-section-head"><h3>Разбивка по стратегии</h3><button data-goto="statistics">Подробности ›</button></div>'+ds19StrategyList(groups)+(chartFirst?'':'<div class="ds19-chart-wrap">'+chart(st.daily||[])+'</div>')+'</section>'}
+function dsDailyStrategyWindow(items,title,kind){
+ const games=groupedMatches(items.map(p=>({...p,section:kind})));
+ return '<section class="ds-daily-window"><div class="ds19-section-head"><h2>'+title+'</h2><span class="ds19-source">'+fmt(items.length)+' селекции</span></div><div class="match-list">'+(games.length?games.map(groupedCard).join(''):empty('Няма селекции за днес.'))+'</div></section>';
+}
 async function home(){
  const day='&from='+encodeURIComponent(today())+'&to='+encodeURIComponent(today());
- const [buildersData,strategyData]=await Promise.all([api('builders',day),api('strategies',day)]);
- const strategySelections=ds20StrategyMatches(strategyData.groups||[]).map(p=>({...p,section:'strategy'}));
+ const [buildersData,strategyData,betaData]=await Promise.all([api('builders',day),api('strategies',day),api('beta',day)]);
+ const af=ds20StrategyMatches(strategyData.groups||[]).map(p=>({...p,section:'af'}));
+ const beta=(betaData.items||[]).map(p=>({...p,section:'beta',strategyLabel:(p.betaNames||[]).join(', ')}));
  const dateLabel=new Intl.DateTimeFormat('bg-BG',{timeZone:'Europe/Sofia',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
- $('#content').innerHTML='<div class="ds19-home ds19-design-B ds20-home">'+ds20BestBuilder(buildersData.proposals,dateLabel)+ds20StrategyWindow(strategySelections)+'</div>';
- state.visibleMatches=strategySelections;bindLinks();bindFixtures();hydrateCrests();
+ $('#content').innerHTML='<div class="ds19-home ds19-design-B ds20-home">'+ds20BestBuilder(buildersData.proposals,dateLabel)+dsDailyStrategyWindow(af,'Стратегии A–F · днес','af')+dsDailyStrategyWindow(beta,'Beta Strategy · днес','beta')+'</div>';
+ state.visibleMatches=[...af,...beta];bindLinks();bindFixtures();hydrateCrests();
 }
 function ds27BuilderPicks(data){return (data.proposals||[]).flatMap(b=>(b.items||[]).map(p=>({...p,date:p.date||b.date,section:'visible'})))}
 function ds27StrategyPicks(data){return ds20StrategyMatches(data.groups||[]).map(p=>({...p,section:'visible'}))}
@@ -118,9 +127,9 @@ async function matches(){
  const search=()=>state.matchSearch.toLocaleLowerCase('bg');
  const matchesFilter=p=>!state.matchSearch||[p.match,p.league,p.selection,p.strategyLabel].join(' ').toLocaleLowerCase('bg').includes(search());
  const draw=()=>{
-  const a=af.filter(matchesFilter),b=bp.filter(matchesFilter);
+  const a=af.filter(p=>p.date!==today()&&matchesFilter(p)),b=bp.filter(p=>p.date!==today()&&matchesFilter(p));
   state.visibleMatches=[...a,...b];
-  const renderGroup=(items,title,subtitle)=>'<section class="ds-beta-match-window"><div class="ds19-section-head"><h2>'+title+'</h2><span class="ds19-source">'+fmt(items.length)+' селекции</span></div><p class="helper">'+subtitle+'</p><div class="match-list">'+(items.length?groupedMatches(items).map(groupedCard).join(''):empty('Няма срещи за избраната дата или период.'))+'</div></section>';
+  const renderGroup=(items,title,subtitle)=>'<section class="ds-beta-match-window"><div class="ds19-section-head"><h2>'+title+'</h2><span class="ds19-source">'+fmt(items.length)+' селекции</span></div><p class="helper">'+subtitle+'</p><div class="match-list">'+(items.length?groupedMatches(items).map(groupedCard).join(''):empty('Няма други срещи за избраната дата или период.'))+'</div></section>';
   $('#af-match-window').innerHTML=renderGroup(a,'Стратегии A–F','Оригинални стратегии · '+[...new Set(a.flatMap(p=>p.strategies||[]))].join(', '));
   $('#beta-match-window').innerHTML=renderGroup(b,'Beta Strategy','Независими бета филтри · името на филтъра е изписано върху всяка селекция.');
   bindFixtures();hydrateCrests();
