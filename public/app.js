@@ -41,7 +41,7 @@ function hydrateCrests(){
   Promise.resolve(map[key]||crestLookup(name,targets[0]?.dataset.country)).then(src=>{if(!src)return;for(const el of targets){if(!el.isConnected)return;const img=document.createElement('img');img.src=src;img.alt='Емблема '+name;img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>{img.onerror=null;img.replaceWith(document.createTextNode('⚽'));el.classList.remove('has-crest')};el.replaceChildren(img);el.classList.add('has-crest')}})
  }})
 }
-function confidence(p){const m=String(p.level||'').match(/(?:^|\D)(10|[1-9])\s*\/\s*10/);return m?m[1]+'/10':'—'}
+function confidence(p){const m=String(p.level||'').match(/(?:^|\D)(10|[1-9])\s*\/\s*10/);return m?String(Math.ceil(Number(m[1])/2)):'—'}
 function shortPick(value,match){
  let s=String(value||'').trim();const teams=teamNames(match);
  if(teams.length===2){if(s.toLowerCase()===(teams[0]+' да допусне гол').toLowerCase())return teams[1]+' +0.5 гола';if(s.toLowerCase()===(teams[1]+' да допусне гол').toLowerCase())return teams[0]+' +0.5 гола'}
@@ -79,8 +79,8 @@ function groupedCard(g){
  const detail=(label,v,missing)=>'<div class="ds26-detail-field"><span>'+label+'</span><strong>'+value(v,missing)+'</strong></div>';
  const picks=g.items.slice(0,open?g.items.length:1).map((p,i)=>`<section class="ds26-selection" aria-label="Прогноза ${i+1}">
  <div class="ds26-pick-heading"><span class="ds26-pick-number">Прогноза ${i+1}</span>${badge(p.status)}</div>
- <div class="ds26-pick-main"><span class="ds26-field-caption">Точна прогноза от таблицата</span><strong>${value(p.selection,'Няма записана прогноза')}</strong></div>
- <div class="ds26-pick-metrics"><div><span>Коефициент</span><strong>${p.odds?fmt(p.odds):'—'}</strong></div><div><span>Увереност</span><strong>${value(p.level,'—')}</strong></div></div>
+ <div class="ds26-pick-main"><strong>${value(p.selection,'Няма записана прогноза')}</strong></div>
+ <div class="ds26-pick-metrics"><div><span>Коефициент</span><strong>${p.odds?fmt(p.odds):'—'}</strong></div><div><span>Увереност</span><strong>${esc(confidence(p))}</strong></div></div>
  ${open?`<div class="ds26-pick-details">
  <div class="ds26-detail-heading">Какво точно е записано в таблицата</div>
  ${detail('Оригинална селекция в OddAlerts',p.oddAlertsSelection,'Не е записана')}
@@ -93,7 +93,7 @@ function groupedCard(g){
  <div class="ds11-teams">${teams.length===2?`<span class="ds11-team">${crestHTML(teams[0],g.league)}<b>${esc(teams[0])}</b></span><span class="ds11-vs">—</span><span class="ds11-team">${crestHTML(teams[1],g.league)}<b>${esc(teams[1])}</b></span>`:`<b>${esc(g.match)}</b>`}</div>
  <div class="ds26-picks">${picks}</div>
  <div class="ds11-expand">${open?'Скрий подробностите':'Покажи всички прогнози и данни'} ${open?'⌃':'⌄'}${!open&&g.items.length>1?' · '+g.items.length+' прогнози':''}</div>
- </button></article>`;
+ </button><button type="button" class="dsms-entry" data-match-stats="${esc(g.match)}" data-stats-date="${esc(g.date)}">▥ Пълна статистика на мача</button></article>`;
 }
 function bindFixtures(){document.querySelectorAll('[data-fixture]').forEach(b=>b.onclick=()=>{state.expandedMatch=state.expandedMatch===b.dataset.fixture?'':b.dataset.fixture;const card=b.closest('.fixture');card.outerHTML=groupedCard(groupedMatches(state.visibleMatches).find(g=>g.key===b.dataset.fixture));bindFixtures();hydrateCrests()})}
 function ds19SourceLabel(st){return st.source==='oracle'?'Oracle · налична история':'Google Sheets · резервен източник (непотвърден пълен обхват)'}
@@ -120,10 +120,16 @@ const builderHistoryState={offset:0,limit:50};
 function oracleBuilderCard(p){const type=String(p.BUILDER_TYPE||'');const status=String(p.RESULT_STATUS||'pending').toLowerCase();const day=String(p.MATCH_DATE||'');const odds=Number(p.ODDS);const legs=Number(p.LEGS)||0;const pl=p.PROFIT_UNITS===null||p.PROFIT_UNITS===undefined?null:Number(p.PROFIT_UNITS);return '<article class="match-card ds21-builder-history"><div class="match-top"><span>'+esc(day)+' · '+legs+' селекции · Oracle</span>'+dsBuilderBadge(status)+'</div><div class="match-title">'+esc(type==='BEST_PROPOSAL'?'✧ Best of the Day · архив':'Мой записан билдър · архив')+'</div><div class="match-pick"><span>Общ коефициент</span><b>'+dsOddsLabel(odds>1?odds:null)+'</b></div>'+(pl!==null?'<div class="match-meta '+color(pl)+'">P/L '+signed(pl)+' u</div>':'')+'</article>'}
 async function oracleBuilderHistory(){const url='/api/history?kind=builders&type='+(state.builderTab==='mine'?'RECORDED':'BEST_PROPOSAL')+'&offset='+builderHistoryState.offset+'&limit='+builderHistoryState.limit+(state.mode==='all'?'':'&from='+encodeURIComponent(iso(state.from))+'&to='+encodeURIComponent(iso(state.mode==='day'?state.from:state.to)));const r=await fetch(url,{headers:{Authorization:'Bearer '+state.token},cache:'no-store'});const d=await r.json().catch(()=>({error:'Невалиден отговор от Oracle'}));if(!r.ok)throw Error(d.error||'Oracle HTTP '+r.status);return d}
 async function builders(){
- const d=await api('builders',period()),mine=state.builderTab==='mine',rows=mine?(d.items||[]):(d.proposals||[]);
+ const [sheetsResult,historyResult]=await Promise.allSettled([api('builders',period()),oracleBuilderHistory()]);
+ const d=sheetsResult.status==='fulfilled'?sheetsResult.value:{items:[],proposals:[]};
+ const mine=state.builderTab==='mine',rows=mine?(d.items||[]):(d.proposals||[]);
  const cards=mine?rows.map(p=>'<article class="match-card"><div class="match-top">'+esc(p.date)+' · '+esc(p.match)+'</div><div class="match-pick"><span>'+esc(shortPick(p.selection,p.match))+'</span><b>'+fmt(p.odds)+'</b></div></article>').join(''):rows.map(dsBuilderCard).join('');
- $('#content').innerHTML=dates()+'<div class="segmented tabs"><button data-builder-tab="best" class="'+(!mine?'active':'')+'">Best of the Day</button><button data-builder-tab="mine" class="'+(mine?'active':'')+'">Моите билдъри</button></div><div class="page-intro"><h2>'+(mine?'Моите билдъри':'Best of the Day')+'</h2></div><div class="match-list">'+(cards||empty('Няма записи.'))+'</div>';
- bindDates();document.querySelectorAll('[data-builder-tab]').forEach(b=>b.onclick=()=>{state.builderTab=b.dataset.builderTab;render()});hydrateCrests();
+ const history=historyResult.status==='fulfilled'?historyResult.value:null;
+ const archived=(history?.items||[]).map(p=>'<article class="match-card"><div class="match-top">'+esc(bg(p.MATCH_DATE||''))+' · '+esc(p.BUILDER_TYPE||'')+'</div><div class="match-pick"><span>'+fmt(p.LEGS)+' селекции · '+esc(p.RESULT_STATUS||'Предстоящ')+'</span><b>'+fmt(p.ODDS)+'</b></div>'+(p.PROFIT_UNITS==null?'':'<div class="match-meta '+color(Number(p.PROFIT_UNITS))+'">P/L '+signed(Number(p.PROFIT_UNITS))+' u</div>')+'</article>').join('');
+ $('#content').innerHTML=dates()+'<div class="segmented tabs"><button data-builder-tab="best" class="'+(!mine?'active':'')+'">Best of the Day</button><button data-builder-tab="mine" class="'+(mine?'active':'')+'">Моите билдъри</button></div><div class="page-intro"><h2>'+(mine?'Моите билдъри':'Best of the Day')+'</h2></div><div class="match-list">'+(cards||empty('Няма текущи записи.'))+'</div><div class="page-intro"><h2>История на билдърите · Oracle</h2><p class="helper">Архивът е отделен от текущите записи в Google Sheets.</p></div><div class="match-list">'+(history?archived||empty('Няма архивни записи за периода.'):empty('Архивът временно не е достъпен.'))+'</div>'+(history?'<div class="ds19-pager"><button id="builder-prev" class="btn outline" '+(builderHistoryState.offset===0?'disabled':'')+'>Назад</button><span>'+fmt(builderHistoryState.offset+1)+'–'+fmt(builderHistoryState.offset+(history.items||[]).length)+'</span><button id="builder-next" class="btn outline" '+(!history.hasMore?'disabled':'')+'>Напред</button></div>':'');
+ bindDates();document.querySelectorAll('[data-builder-tab]').forEach(b=>b.onclick=()=>{state.builderTab=b.dataset.builderTab;builderHistoryState.offset=0;render()});
+ const prev=$('#builder-prev'),next=$('#builder-next');if(prev)prev.onclick=()=>{builderHistoryState.offset=Math.max(0,builderHistoryState.offset-builderHistoryState.limit);render()};if(next)next.onclick=()=>{builderHistoryState.offset+=builderHistoryState.limit;render()};
+ hydrateCrests();
 }
 function chart(points){
  const ordered=[...(points||[])].filter(p=>p&&p.date&&Number.isFinite(Number(p.pl))).sort((a,b)=>{const date=x=>/^\d{2}\.\d{2}\.\d{4}$/.test(x)?x.split('.').reverse().join('-'):x;return date(a.date).localeCompare(date(b.date))});

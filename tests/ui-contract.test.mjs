@@ -46,7 +46,7 @@ test('historical A-F Oracle panel lives in Statistics not the home fetch',()=>{
 test('compact confidence and real crest folder are wired',()=>{
  assert.match(app,/ds20-confidence/);
  assert.match(app,/ds20-leg-crests/);
- assert.match(app,/fetch\('\/crests\/manifest\.json\?v=221'\)/);
+ assert.match(app,/fetch\('\/crests\/manifest\.json\?v=224'\)/);
  assert.match(css,/\.ds20-confidence/);
 });
 test('new scripts and styles share the same cache-busting versions',()=>{

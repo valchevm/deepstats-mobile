@@ -1,4 +1,4 @@
-import {access} from './_sheets.js';
+import {access} from '../lib/_sheets.js';
 import {timingSafeEqual} from 'node:crypto';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';

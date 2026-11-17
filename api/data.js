@@ -1,5 +1,8 @@
-import {access,sheets,read,readFrom,ARCHIVE_ID,ID} from './_sheets.js';
+import {access,sheets,read,readFrom,ARCHIVE_ID,ID} from '../lib/_sheets.js';
 import {timingSafeEqual} from 'node:crypto';
+const clean=x=>String(x??'').trim().toLocaleLowerCase('bg-BG').replace(/[–—−]/g,'-').replace(/\s+/g,' ');
+const iso=x=>{const s=String(x||'');if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m=s.match(/^(\d{2})[.\/-](\d{2})[.\/-](\d{4})$/);return m?m[3]+'-'+m[2]+'-'+m[1]:s};
+
 function authorizedAdmin(req){
  const expected=process.env.ADMIN_ACCESS_TOKEN||'';
  const supplied=String(req.headers.authorization||'').replace(/^Bearer /,'');
@@ -27,6 +30,18 @@ function uniqueEntries(rows){const seen=new Set();return rows.filter(r=>{const k
 const send=(res,data)=>{res.setHeader('Cache-Control','private, no-store');return res.json(data)};
 export default async function handler(req,res){if(req.method!=='GET')return res.status(405).end();if(!authorizedAdmin(req)&&!access(req,res))return;try{
 const kind=txt(req.query.kind||'dashboard');const from=txt(req.query.from||req.query.date),to=txt(req.query.to||req.query.date);if((from&&!valid(from))||(to&&!valid(to)))return res.status(400).json({error:'Невалидна дата.'});const s=await sheets();
+if(kind==='match-stats'){
+ const match=clean(req.query.match),date=iso(req.query.date),id=String(req.query.id||'').trim();
+ if(!match&&!id)return res.status(400).json({error:'Липсва мач или Match ID'});
+  const rows=await read(s,"'МАЧОВЕ JSON'!A2:K25000");
+  const candidates=rows.filter(r=>r[7]&&(id&&String(r[4]||'').trim()===id||match&&clean(r[3])===match&&(!date||iso(r[0])===date)));
+  if(!candidates.length)return res.status(404).json({error:'За този мач още няма налична статистика.'});
+  const r=candidates[0];let data;
+  try{data=JSON.parse(r[7])}catch{return res.status(422).json({error:'Невалиден JSON за избрания мач.'})}
+  if(!data||typeof data.sections!=='object'||Array.isArray(data.sections))return res.status(422).json({error:'Липсват статистически раздели.'});
+  res.setHeader('Cache-Control','private, max-age=60');
+  return res.status(200).json({date:r[0],time:r[1],league:r[2],match:r[3],id:r[4],strategy:r[5],count:Number(r[6])||null,coverage:r[9],data});
+}
 if(kind==='dashboard'){const [stat,best,summary]=await Promise.all([read(s,S.summary),read(s,S.best),read(s,"'ДНЕВЕН ЦЕНТЪР'!M3:Q10")]);const metrics={};stat.forEach(r=>{if(r[0])metrics[txt(r[0])]={selections:txt(r[1]),builders:txt(r[3]),total:txt(r[5])}});return send(res,{metrics,best:selections(best),strategySummary:summary.map((r,i)=>({key:keys[i],name:strategyNames[keys[i]],count:num(r[1]),settled:num(r[2]),profit:num(r[3]),yield:num(r[4])})),updatedAt:new Date().toISOString()})}
 if(kind==='matches'){const [main,best,old]=await Promise.all([read(s,S.selections),read(s,S.best),archiveRows(s,historicalTabs.selections)]);const a=uniqueEntries(selections(unionRows(main,old))),b=selections(best);const ids=new Set(a.map(p=>[p.date,p.match,p.selection].join('|')));const merged=[...a,...b.filter(p=>!ids.has([p.date,p.match,p.selection].join('|')))];return send(res,{items:filter(merged,{from,to}),count:merged.length})}
 if(kind==='strategies'){const [current,old]=await Promise.all([read(s,S.strategy),archiveRows(s,historicalTabs.strategy)]);const rows=uniqueEntries(strategies(unionRows(current,old)));const period=filter(rows,{from,to});const by=keys.map(k=>{const items=period.filter(r=>r.strategies.includes(k));return {key:k,name:strategyNames[k],stats:calc(items),items}});return send(res,{groups:by,stats:calc(period.filter(r=>r.strategies.length)),dates:[...new Set(rows.map(r=>r.date))].sort((a,b)=>dateKey(b).localeCompare(dateKey(a)))})}

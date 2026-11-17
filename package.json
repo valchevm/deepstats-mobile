@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "check": "node --check api/_sheets.js && node --check api/data.js && node --check api/builders.js && node --check api/history.js && node --check api/oracle-archive.js && node --check api/oracle-stats.js && node --check api/oracle-import-selections.js && node --check api/oracle-import-strategies.js && node --check api/oracle-import-builders.js && node --check api/oracle-import-best.js && node --check api/oracle-import-odds-legacy.js && node --check scripts/daily-oracle-archive.mjs && node --check public/app.js && node --test tests/ui-contract.test.mjs"
+    "check": "node --check lib/_sheets.js && node --check api/data.js && node --check api/builders.js && node --check api/history.js && node --check api/oracle-archive.js && node --check api/oracle-stats.js && node --check api/oracle-import-selections.js && node --check api/oracle-import-strategies.js && node --check api/oracle-import-builders.js && node --check api/oracle-import-best.js && node --check api/oracle-import-odds-legacy.js && node --check scripts/daily-oracle-archive.mjs && node --check public/app.js && node --check public/match-stats.js && node --check api/crests.js && node --check api/oracle-check.js && node --test tests/ui-contract.test.mjs"
   },
   "dependencies": {
     "googleapis": "^144.0.0",
