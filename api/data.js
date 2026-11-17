@@ -33,7 +33,6 @@ const kind=txt(req.query.kind||'dashboard');const from=txt(req.query.from||req.q
 if(kind==='match-stats'){
  const match=clean(req.query.match),date=iso(req.query.date),id=String(req.query.id||'').trim();
  if(!match&&!id)return res.status(400).json({error:'Липсва мач или Match ID'});
- try{
   const rows=await read(s,"'МАЧОВЕ JSON'!A2:K25000");
   const candidates=rows.filter(r=>r[7]&&(id&&String(r[4]||'').trim()===id||match&&clean(r[3])===match&&(!date||iso(r[0])===date)));
   if(!candidates.length)return res.status(404).json({error:'За този мач още няма налична статистика.'});
