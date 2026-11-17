@@ -478,3 +478,22 @@ html[data-theme="light"] .ds-flag-icon{box-shadow:0 0 0 1px #243e4a33}
 .ds-smooth-expand[aria-expanded=true] .ds-smooth-expand-icon{transform:rotate(180deg);background:#5594c235}
 .ds-smooth-fixture>.dsms-entry{margin-top:8px}
 @media(prefers-reduced-motion:reduce){.ds-smooth-expand,.ds-smooth-expand-icon{transition:none}}
+
+/* Strategy category toggles: professional, responsive, accessible */
+.ds-strategy-accordion-pro{margin:0 0 14px!important;padding:0!important;border:1px solid var(--border,#2e4357)!important;border-radius:17px!important;background:var(--card,#132536)!important;overflow:hidden;box-shadow:0 3px 16px #00000012;transition:border-color .2s,box-shadow .2s}
+.ds-strategy-accordion-pro.is-open{border-color:#4d82a9!important;box-shadow:0 9px 28px #00000020}
+.ds-strategy-pro-toggle{display:flex!important;align-items:center;gap:13px;width:100%;min-height:82px;padding:15px 17px!important;margin:0!important;background:transparent!important;border:0!important;border-radius:0!important;color:var(--text,#f0f5fa)!important;text-align:left;cursor:pointer;box-shadow:none!important;transition:background .2s}
+.ds-strategy-pro-toggle:hover{background:#568cbb0c!important}
+.ds-strategy-pro-toggle:focus-visible{outline:2px solid #78bdf1;outline-offset:-3px}
+.ds-strategy-pro-mark{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:13px;font-size:14px;font-weight:850;letter-spacing:-.4px;color:#9ed5ff;background:#28557a30;border:1px solid #6eb7ee36}
+.ds-strategy-pro-mark.is-beta{color:#c9b5ff;background:#7455ba24;border-color:#aa8de33d;font-size:22px}
+.ds-strategy-pro-copy{display:flex;flex:1;flex-direction:column;gap:5px;min-width:0}
+.ds-strategy-pro-copy strong{font-size:14px;font-weight:750;line-height:1.35;overflow-wrap:anywhere}
+.ds-strategy-pro-copy small{font-size:11px;font-weight:500;color:var(--muted,#99aec1);line-height:1.35}
+.ds-strategy-pro-action{display:flex;align-items:center;gap:9px;flex:none;color:#8fcafa;font-weight:750;font-size:11px}
+.ds-strategy-pro-arrow{width:32px;height:32px;display:grid;place-items:center;border:1px solid #6da9d63b;background:#5b94c51c;border-radius:10px;transition:transform .22s,background .22s}
+.ds-strategy-accordion-pro.is-open .ds-strategy-pro-arrow{transform:rotate(180deg);background:#5b94c53b}
+.ds-strategy-pro-content{padding:13px 13px 4px;border-top:1px solid var(--border,#2e4357)}
+.ds-strategy-pro-content[hidden]{display:none!important}
+@media(max-width:420px){.ds-strategy-pro-toggle{padding:12px!important;gap:10px;min-height:74px}.ds-strategy-pro-mark{width:41px;height:41px;border-radius:11px}.ds-strategy-pro-copy strong{font-size:12px}.ds-strategy-pro-action-text{display:none}.ds-strategy-pro-arrow{width:32px;height:32px}}
+@media(prefers-reduced-motion:reduce){.ds-strategy-accordion-pro,.ds-strategy-pro-toggle,.ds-strategy-pro-arrow{transition:none}}
