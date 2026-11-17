@@ -26,14 +26,14 @@ test('dark is default; light and dark remain selectable and persistent',()=>{
  assert.match(app,/data-set-theme="light"/);
  assert.match(css,/html\[data-theme="light"\]/);
 });
-test('one consistent Data Analytics B dashboard with three required sections',()=>{
+test('one consistent Data Analytics B dashboard with builder and directly visible strategy matches',()=>{
  assert.match(app,/document\.documentElement\.dataset\.design='B'/);
  assert.doesNotMatch(app,/data-set-design="A"/);
  assert.doesNotMatch(app,/data-set-design="C"/);
  assert.match(app,/ds20BestBuilder\(buildersData\.proposals,dateLabel\)/);
  assert.match(app,/ds20StrategyWindow\(strategySelections\)/);
- assert.match(app,/Всички селекции/);
- assert.match(app,/<details class="ds20-details">/);
+ assert.doesNotMatch(app.slice(app.indexOf('async function home(){'),app.indexOf('async function matches(){')),/api\('matches'/);
+ assert.doesNotMatch(app.slice(app.indexOf('function ds20StrategyWindow('),app.indexOf('function ds19StatsPanel(')),/<details/);
 });
 test('historical A-F Oracle panel lives in Statistics not the home fetch',()=>{
  assert.match(app,/strategyKeys=\['A','B','C','D1','D2','D3','E','F'\]/);
@@ -59,7 +59,7 @@ test('new scripts and styles share the same cache-busting versions',()=>{
 });
 test('existing Oracle and Sheets API source files are still referenced',()=>{
  assert.match(app,/api\('builders'/);
- assert.match(app,/api\('matches'/);
+ assert.match(app,/ds27VisibleMatches/);
  assert.match(app,/api\('strategies'/);
  assert.match(app,/\/api\/history\?kind=/);
  assert.match(app,/api\('statistics'/);
@@ -129,4 +129,16 @@ test('world flag manifest lists all locally cached SVGs and non-country territor
   assert.match(code,/^[a-z]{2}(?:-[a-z]{3})?$/);
   if(!report.unresolved.includes(code))assert.ok(existsSync(join(root,'public','flags',code+'.svg')),'flag missing: '+code);
  }
+});
+
+test('V27 match visibility, concise card and responsive archive contracts',()=>{
+ const home=app.slice(app.indexOf('async function home(){'),app.indexOf('function ds27BuilderPicks('));
+ const matches=app.slice(app.indexOf('async function matches(){'),app.indexOf('async function strategies(){'));
+ const card=app.slice(app.indexOf('function groupedCard(g){'),app.indexOf('function bindFixtures()'));
+ assert.doesNotMatch(home,/Всички селекции|api\('matches'/);
+ assert.match(matches,/ds27VisibleMatches\(period\(\)\)/);
+ assert.match(card,/ds27Ratio/);
+ assert.doesNotMatch(card,/Какво точно е записано|Оригинална селекция в OddAlerts|Не е посочено/);
+ assert.match(css,/\.ds27-profile-grid/);
+ assert.match(css,/\.ds27-archive-tabs/);
 });
