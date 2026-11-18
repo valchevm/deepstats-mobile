@@ -60,7 +60,7 @@ if(kind==='beta'){
 if(kind==='ten10'){
  const [current,old]=await Promise.all([read(s,S.strategy),archiveRows(s,historicalTabs.strategy)]);
  const seen=new Map();for(const r of unionRows(current,old)){
-  if(txt(r[0])!=='Селекция'||!valid(txt(r[1]))||!txt(r[2])||!txt(r[3])||txt(r[5]).replace(/\\s/g,'')!=='10/10')continue;
+  if(txt(r[0])!=='Селекция'||!valid(txt(r[1]))||!txt(r[2])||!txt(r[3])||txt(r[5]).replace(/\s/g,'')!=='10/10')continue;
   const key=[txt(r[1]),txt(r[2]),txt(r[3]),num(r[4])].join('|');
   const p={id:'ten-'+seen.size,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),odds:num(r[4]),level:'10/10',result:txt(r[6]),status:state(r[6]),pl:txt(r[7])===''?null:num(r[7]),market:txt(r[10]),group:txt(r[12])};
   if(!seen.has(key)||seen.get(key).status==='pending'&&p.status!=='pending')seen.set(key,p);
