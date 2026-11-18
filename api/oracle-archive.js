@@ -1,3 +1,4 @@
+import rawSnapshot from '../lib/_raw_snapshot.js';
 import {timingSafeEqual} from 'node:crypto';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
@@ -13,6 +14,7 @@ function authorized(req){
 function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''))}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
+ if(req.method==='POST'||req.query.kind==='raw-manifest')return rawSnapshot(req,res);
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
  if(!authorized(req))return res.status(403).json({error:'Forbidden'});
  const kind=String(req.query.kind||'summary');
