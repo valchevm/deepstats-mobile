@@ -14,10 +14,11 @@ let total=0;
 for(const sh of manifest.sheets){
  for(let start=1;start<=sh.rows;start+=100){
   const r=await retry('POST',{action:'batch',day:manifest.day,sheetId:sh.id,start});
+  if(r.start!==start||r.count!==Math.min(100,sh.rows-start+1))throw Error('Import batch count mismatch for '+sh.name+' at '+start);
+  const verified=await retry('POST',{action:'verify',day:manifest.day,sheetId:sh.id,start});
+  if(!verified.verified||verified.start!==start||verified.rows!==r.count)throw Error('Verification failed for '+sh.name+' at '+start);
   total+=r.count;
  }
- const verified=await retry('POST',{action:'verify',day:manifest.day,sheetId:sh.id});
- if(!verified.verified||verified.rows!==sh.rows)throw Error('Verification failed for '+sh.name);
- console.log('VERIFIED '+sh.name+' '+verified.rows+' rows');
+ console.log('VERIFIED '+sh.name+' '+sh.rows+' rows');
 }
 console.log('RAW ORACLE SNAPSHOT VERIFIED '+manifest.day+' '+total+' rows');
