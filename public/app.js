@@ -126,12 +126,12 @@ function bindStrategyAccordions(){
 }
 async function home(){
  const day='&from='+encodeURIComponent(today())+'&to='+encodeURIComponent(today());
- const [buildersData,strategyData,betaData]=await Promise.all([api('builders',day),api('strategies',day),api('beta',day)]);
+ const [buildersData,strategyData,betaData,tenData]=await Promise.all([api('builders',day),api('strategies',day),api('beta',day),api('ten10',day)]);
  const af=ds20StrategyMatches(strategyData.groups||[]).map(p=>({...p,section:'af'}));
  const beta=(betaData.items||[]).map(p=>({...p,section:'beta',strategyLabel:(p.betaNames||[]).join(', ')}));
  const dateLabel=new Intl.DateTimeFormat('bg-BG',{timeZone:'Europe/Sofia',day:'2-digit',month:'2-digit',year:'numeric'}).format(new Date());
- $('#content').innerHTML='<div class="ds19-home ds19-design-B ds20-home">'+ds20BestBuilder(buildersData.proposals,dateLabel)+dsStrategyAccordion(af,'Стратегии A–F · днес','today-af','Няма срещи от A–F за днес.')+dsStrategyAccordion(beta,'Beta Strategy · днес','today-beta','Няма бета срещи за днес.')+'</div>';
- state.visibleMatches=[...af.map(p=>({...p,section:'today-af'})),...beta.map(p=>({...p,section:'today-beta'}))];bindLinks();bindStrategyAccordions();bindFixtures();hydrateCrests();
+ $('#content').innerHTML='<div class="ds19-home ds19-design-B ds20-home">'+ds20BestBuilder(buildersData.proposals,dateLabel)+dsStrategyAccordion(af,'Стратегии A–F · днес','today-af','Няма срещи от A–F за днес.')+dsStrategyAccordion(beta,'Beta Strategy · днес','today-beta','Няма бета срещи за днес.')+dsStrategyAccordion(tenData.items||[],'⭐ Всички 10/10 · днес','today-ten','Няма селекции 10/10 за днес.')+'</div>';
+ state.visibleMatches=[...af.map(p=>({...p,section:'today-af'})),...beta.map(p=>({...p,section:'today-beta'})),...(tenData.items||[]).map(p=>({...p,section:'today-ten'}))];bindLinks();bindStrategyAccordions();bindFixtures();hydrateCrests();
 }
 function ds27BuilderPicks(data){return (data.proposals||[]).flatMap(b=>(b.items||[]).map(p=>({...p,date:p.date||b.date,section:'visible'})))}
 function ds27StrategyPicks(data){return ds20StrategyMatches(data.groups||[]).map(p=>({...p,section:'visible'}))}
@@ -145,20 +145,22 @@ async function ds27VisibleMatches(query){
  return [...unique.values()];
 }
 async function matches(){
- const [original,beta]=await Promise.all([api('strategies'),api('beta')]);
+ const [original,beta,tenData]=await Promise.all([api('strategies'),api('beta'),api('ten10')]);
  const af=ds20StrategyMatches(original.groups||[]).map(p=>({...p,section:'af',strategyLabel:(p.strategies||[]).join(', ')}));
  const bp=(beta.items||[]).map(p=>({...p,section:'beta',strategyLabel:(p.betaNames||[]).join(', ')}));
+ const tp=(tenData.items||[]).map(p=>({...p,section:'ten10'}));
  const search=()=>state.matchSearch.toLocaleLowerCase('bg');
  const matchesFilter=p=>!state.matchSearch||[p.match,p.league,p.selection,p.strategyLabel].join(' ').toLocaleLowerCase('bg').includes(search());
  const draw=()=>{
   const a=af.filter(p=>iso(p.date)>iso(today())&&matchesFilter(p)),b=bp.filter(p=>iso(p.date)>iso(today())&&matchesFilter(p));
-  state.visibleMatches=[...a,...b];
+  const c=tp.filter(p=>iso(p.date)>iso(today())&&matchesFilter(p));state.visibleMatches=[...a,...b,...c];
   $('#af-match-window').innerHTML=dsStrategyAccordion(a,'Стратегии A–F · следващи дни','future-af','Няма предстоящи срещи от A–F.');
   $('#beta-match-window').innerHTML=dsStrategyAccordion(b,'Beta Strategy · следващи дни','future-beta','Няма предстоящи бета срещи.');
+  $('#ten-match-window').innerHTML=dsStrategyAccordion(c,'⭐ Всички 10/10 · следващи дни','future-ten','Няма предстоящи селекции 10/10.');
   bindStrategyAccordions();
   bindFixtures();hydrateCrests();
  };
- $('#content').innerHTML='<p class="helper">Показват се само срещи след днешната дата.</p><div class="search-box"><span>⌕</span><input id="match-search" type="search" placeholder="Търси отбор, пазар или стратегия…" value="'+esc(state.matchSearch)+'" autocomplete="off"><button id="clear-search" aria-label="Изчисти">×</button></div><div id="af-match-window"></div><div id="beta-match-window"></div>';
+ $('#content').innerHTML='<p class="helper">Показват се само срещи след днешната дата.</p><div class="search-box"><span>⌕</span><input id="match-search" type="search" placeholder="Търси отбор, пазар или стратегия…" value="'+esc(state.matchSearch)+'" autocomplete="off"><button id="clear-search" aria-label="Изчисти">×</button></div><div id="af-match-window"></div><div id="beta-match-window"></div><div id="ten-match-window"></div>';
  bindDates();draw();
  $('#match-search').oninput=e=>{state.matchSearch=e.target.value;draw()};
  $('#clear-search').onclick=()=>{state.matchSearch='';render()};
