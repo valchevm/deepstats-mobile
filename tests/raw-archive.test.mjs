@@ -41,3 +41,15 @@ test('request timeout configuration allows longer than prior 14-second limit',as
  const runner=await source(new URL('../scripts/daily-raw-oracle-snapshot.mjs',import.meta.url),'utf8');
  assert.match(runner,/controller\.abort\(\),55000/);
 });
+
+test('raw Oracle SQL uses only stable, non-reserved named binds',async()=>{
+ const src=await (await import('node:fs/promises')).readFile(new URL('../lib/_raw_snapshot.js',import.meta.url),'utf8');
+ const sql=src.match(/const mergeSql=`([\s\S]*?)`;/)?.[1];
+ assert.ok(sql,'MERGE SQL must exist');
+ const placeholders=[...new Set([...sql.matchAll(/:([a-zA-Z][a-zA-Z_0-9]*)/g)].map(m=>m[1]))];
+ assert.deepEqual(placeholders.sort(),['p_col_count','p_json_data','p_row_digest','p_row_index','p_sheet_key','p_sheet_title','p_snap_day'].sort());
+ for(const bind of placeholders){
+  assert.match(src,new RegExp('\\\\b'+bind+':'));
+ }
+ assert.doesNotMatch(sql,/:rowNum\\b|:raw\\b|:name\\b|:hash\\b|:row\\b/);
+});
