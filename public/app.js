@@ -94,7 +94,7 @@ function bindFixtures(){
 }
 function ds19SourceLabel(st){return st.source==='oracle'?'Oracle · налична история':'Google Sheets · резервен източник (непотвърден пълен обхват)'}
 function ds19StatsCards(x){return '<div class="ds19-stat-grid">'+[
- ['Селекции',fmt(x.count),'neutral'],['Уредени',fmt(x.settled),'neutral'],['Победи',fmt(x.wins),'positive'],['Загуби',fmt(x.losses),'negative'],['WR',fmt(x.wr)+'%','neutral'],['Yield',signed(x.yield)+'%',color(x.yield)],['P/L',signed(x.profit)+' u',color(x.profit)]
+ ['Селекции',fmt(x.count),'neutral'],['Уредени',fmt(x.settled),'neutral'],['Победи',fmt(x.wins),'positive'],['Загуби',fmt(x.losses),'negative'],['WR',fmt(x.wr)+'%','neutral'],['Avg Odds',x.avgOdds==null?'—':fmt(x.avgOdds),'neutral'],['Yield',signed(x.yield)+'%',color(x.yield)],['P/L',signed(x.profit)+' u',color(x.profit)]
 ].map(([label,value,cl])=>'<div class="ds19-stat '+cl+'"><span>'+label+'</span><strong>'+value+'</strong></div>').join('')+'</div>'}
 function ds19StrategyList(groups){return '<div class="ds19-strategy-list">'+groups.map(g=>'<button class="ds19-strategy-row" data-open="'+esc(g.key)+'"><span class="ds19-strategy-code">'+esc(g.key)+'</span><span class="ds19-strategy-name"><b>'+esc(g.name)+'</b><small>'+fmt(g.count)+' селекции · '+fmt(g.wr)+'% WR</small></span><span class="ds19-strategy-result '+color(g.profit)+'">'+signed(g.profit)+' u<small>'+signed(g.yield)+'% Yield</small></span></button>').join('')+'</div>'}
 function ds20BestBuilder(proposals,dateLabel){
