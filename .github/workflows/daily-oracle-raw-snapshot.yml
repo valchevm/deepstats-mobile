@@ -19,7 +19,7 @@ jobs:
           node-version: '22'
       - name: Validate snapshot scripts
         run: |
-          node --check api/oracle-raw-snapshot.js
+          node --check lib/_raw_snapshot.js
           node --check scripts/daily-raw-oracle-snapshot.mjs
       - name: Archive and verify all Google Sheets rows in Oracle
         env:
