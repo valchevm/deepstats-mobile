@@ -49,7 +49,7 @@ function shortPick(value,match){
  s=s.replace(/^И двата отбора да вкарат$/i,'Гол/Гол');
  s=s.replace(/^Мачът (над|под) ([\d.,]+) (гола|картона|корнера|удара във вратата|удара)(?: във? (първото|второто) полувреме)?$/i,(_,dir,n,market,half)=>(dir.toLowerCase()==='над'?'+':'−')+n+' '+(market==='удара във вратата'?'точни удара':market)+(half?' '+(half.toLowerCase().startsWith('п')?'FH':'2H'):''));
  s=s.replace(/^(.+?) да вкара гол \(над 0[.,]5\)$/i,'$1 +0.5 гола');
- s=s.replace(/^(.+?) да не загуби (първото|второто) полувреме$/i,(_,team,half)=>team+' X2 '+(half.toLowerCase().startsWith('п')?'FH':'2H'));
+ s=s.replace(/^(.+?) да не загуби (първото|второто) полувреме$/i,(_,team,half)=>{const side=teams.findIndex(t=>t.toLocaleLowerCase('bg')===team.trim().toLocaleLowerCase('bg'));return team+' '+(side===0?'1X':side===1?'X2':'да не загуби')+' '+(half.toLowerCase().startsWith('п')?'FH':'2H')});
  s=s.replace(/над ([\d.,]+) удара във вратата/gi,'+$1 точни удара').replace(/над ([\d.,]+) корнера/gi,'+$1 корнера').replace(/над ([\d.,]+) гола/gi,'+$1 гола').replace(/под ([\d.,]+) гола/gi,'−$1 гола');
  return s;
 }
