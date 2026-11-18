@@ -1,0 +1,28 @@
+name: Daily lossless Oracle Sheets snapshot
+on:
+  schedule:
+    - cron: '20 1 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deepstats-oracle-raw-snapshot
+  cancel-in-progress: false
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate snapshot scripts
+        run: |
+          node --check api/oracle-raw-snapshot.js
+          node --check scripts/daily-raw-oracle-snapshot.mjs
+      - name: Archive and verify all Google Sheets rows in Oracle
+        env:
+          ADMIN_ACCESS_TOKEN: ${{ secrets.ADMIN_ACCESS_TOKEN }}
+          DEEPSTATS_URL: https://deepstats-mobile.vercel.app
+        run: node scripts/daily-raw-oracle-snapshot.mjs
