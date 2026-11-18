@@ -1,27 +1,58 @@
-// Daily complete, non-destructive Google Sheets snapshot in Oracle.
-// Never deletes source rows; failed verification exits non-zero.
-const base=(process.env.DEEPSTATS_URL||'https://deepstats-mobile.vercel.app').replace(/\/$/,'');
-const token=process.env.ADMIN_ACCESS_TOKEN;
-if(!token)throw Error('Missing ADMIN_ACCESS_TOKEN');
-async function call(method,body){
- const ctrl=new AbortController(),timer=setTimeout(()=>ctrl.abort(),55000);
- try{const r=await fetch(base+'/api/oracle-archive'+(method==='GET'?(body?.action==='preflight'?'?kind=raw-preflight':'?kind=raw-manifest'):''),{method,headers:{Authorization:'Bearer '+token,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:ctrl.signal});const data=await r.json();if(!r.ok)throw Error('HTTP '+r.status+' '+JSON.stringify(data));return data}finally{clearTimeout(timer)}
+// Complete daily, non-destructive Oracle snapshot of every Google Sheets row.
+import {pathToFileURL} from 'node:url';
+const BASE=(process.env.DEEPSTATS_URL||'https://deepstats-mobile.vercel.app').replace(/\/$/,'');
+const TOKEN=process.env.ADMIN_ACCESS_TOKEN;
+export async function request(method,action,payload,{base=BASE,token=TOKEN,fetcher=fetch}={}){
+ if(!token)throw Error('Missing ADMIN_ACCESS_TOKEN');
+ if(!['GET','POST'].includes(method))throw Error('Unsupported method');
+ if(method==='GET'&&!['preflight','manifest'].includes(action))throw Error('Unsupported GET action');
+ if(method==='POST'&&!['batch','verify'].includes(action))throw Error('Unsupported POST action');
+ const url=base+'/api/oracle-archive'+(method==='GET'?'?kind=raw-'+action:'');
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),14000);
+ try{
+  const options={method,headers:{Authorization:'Bearer '+token},signal:controller.signal};
+  if(method==='POST'){options.headers['Content-Type']='application/json';options.body=JSON.stringify({...payload,action});}
+  const response=await fetcher(url,options),responseText=await response.text();
+  let data;
+  try{data=JSON.parse(responseText)}catch{throw Error('Invalid JSON from archive endpoint (HTTP '+response.status+'): '+responseText.slice(0,160))}
+  if(!response.ok){const error=new Error('HTTP '+response.status+' '+JSON.stringify(data));error.status=response.status;error.errorCode=data.errorCode||data.error;throw error}
+  return data;
+ }finally{clearTimeout(timeout)}
 }
-async function retry(method,body){let error;for(let n=0;n<3;n++){try{return await call(method,body)}catch(e){error=e;console.warn('Attempt '+(n+1)+' failed: '+e.message);if(/HTTP (400|401|403|404|409|503).*?(ARCHIVE_SCHEMA_SETUP_REQUIRED|ORA-01031|ORA-00942|Snapshot must be today|Invalid)/.test(e.message))throw e;if(n<2)await new Promise(r=>setTimeout(r,3000*(n+1)))}}throw error}
-const ready=await retry('GET',{action:'preflight'});
-if(ready.ready!==true)throw Error('Oracle archive preflight failed');
-console.log('ORACLE SCHEMA READY: '+ready.schema);
-const manifest=await retry('GET');
-console.log('SNAPSHOT '+manifest.day+' '+manifest.sheets.length+' sheets');
-let total=0;
-for(const sh of manifest.sheets){
- for(let start=1;start<=sh.rows;start+=100){
-  const r=await retry('POST',{action:'batch',day:manifest.day,sheetId:sh.id,start});
-  if(r.start!==start||r.count!==Math.min(100,sh.rows-start+1))throw Error('Import batch count mismatch for '+sh.name+' at '+start);
-  const verified=await retry('POST',{action:'verify',day:manifest.day,sheetId:sh.id,start});
-  if(!verified.verified||verified.start!==start||verified.rows!==r.count)throw Error('Verification failed for '+sh.name+' at '+start);
-  total+=r.count;
+export async function retry(method,action,payload,requestFn=request){
+ let last;
+ for(let attempt=1;attempt<=3;attempt++){
+  try{return await requestFn(method,action,payload)}catch(e){
+   last=e;
+   const permanent=[400,401,403,404,409].includes(e.status)||['ARCHIVE_SCHEMA_SETUP_REQUIRED','ORA-01031','ORA-00942'].includes(e.errorCode);
+   if(permanent||attempt===3)break;
+   await new Promise(resolve=>setTimeout(resolve,attempt*1500));
+  }
  }
- console.log('VERIFIED '+sh.name+' '+sh.rows+' rows');
+ throw last;
 }
-console.log('RAW ORACLE SNAPSHOT VERIFIED '+manifest.day+' '+total+' rows');
+export async function archive({requestFn=request,log=console.log}={}){
+ const preflight=await retry('GET','preflight',undefined,requestFn);
+ if(preflight.ready!==true)throw Error('Oracle archive preflight did not pass');
+ log('ORACLE PREFLIGHT OK '+preflight.schema);
+ const manifest=await retry('GET','manifest',undefined,requestFn);
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(manifest.day)||!Array.isArray(manifest.sheets)||manifest.sheets.length===0)throw Error('Invalid source manifest');
+ if(new Set(manifest.sheets.map(x=>x.id)).size!==manifest.sheets.length)throw Error('Duplicate source sheet IDs');
+ log('SNAPSHOT '+manifest.day+' SHEETS '+manifest.sheets.length);
+ let total=0;
+ for(const sh of manifest.sheets){
+  if(!Number.isInteger(sh.id)||!Number.isInteger(sh.rows)||sh.rows<1||!Number.isInteger(sh.cols)||sh.cols<1)throw Error('Invalid source dimensions for '+sh.name);
+  for(let start=1;start<=sh.rows;start+=100){
+   const payload={day:manifest.day,sheetId:sh.id,start},expected=Math.min(100,sh.rows-start+1);
+   const saved=await retry('POST','batch',payload,requestFn);
+   if(saved.sheetId!==sh.id||saved.start!==start||saved.end!==start+expected-1||saved.count!==expected)throw Error('Archive row-count mismatch '+sh.name+' row '+start);
+   const verified=await retry('POST','verify',payload,requestFn);
+   if(verified.verified!==true||verified.sheetId!==sh.id||verified.start!==start||verified.end!==start+expected-1||verified.rows!==expected)throw Error('Oracle verification mismatch '+sh.name+' row '+start);
+   total+=expected;
+  }
+  log('VERIFIED '+sh.name+' '+sh.rows+' rows');
+ }
+ log('RAW ORACLE SNAPSHOT VERIFIED '+manifest.day+' '+manifest.sheets.length+' sheets '+total+' rows');
+ return {day:manifest.day,sheets:manifest.sheets.length,rows:total,verified:true};
+}
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)await archive();

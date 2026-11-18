@@ -21,6 +21,7 @@ jobs:
         run: |
           node --check lib/_raw_snapshot.js
           node --check scripts/daily-raw-oracle-snapshot.mjs
+          node --test tests/raw-archive.test.mjs
       - name: Archive and verify all Google Sheets rows in Oracle
         env:
           ADMIN_ACCESS_TOKEN: ${{ secrets.ADMIN_ACCESS_TOKEN }}
