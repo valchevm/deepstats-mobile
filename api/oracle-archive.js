@@ -16,7 +16,7 @@ function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''))}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.query.kind==='diagnostic')return oracleCheck(req,res);
- if(req.method==='POST'||req.query.kind==='raw-manifest')return rawSnapshot(req,res);
+ if(req.method==='POST'||['raw-manifest','raw-preflight'].includes(req.query.kind))return rawSnapshot(req,res);
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
  if(!authorized(req))return res.status(403).json({error:'Forbidden'});
  const kind=String(req.query.kind||'summary');
