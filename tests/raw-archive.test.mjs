@@ -35,3 +35,9 @@ test('permission errors fail immediately',async()=>{
  let n=0;const req=async()=>{n++;throw Object.assign(new Error('denied'),{status:503,errorCode:'ARCHIVE_SCHEMA_SETUP_REQUIRED'})};
  await assert.rejects(retry('GET','preflight',undefined,req),/denied/);assert.equal(n,1);
 });
+
+test('request timeout configuration allows longer than prior 14-second limit',async()=>{
+ const source=(await import('node:fs/promises')).readFile;
+ const runner=await source(new URL('../scripts/daily-raw-oracle-snapshot.mjs',import.meta.url),'utf8');
+ assert.match(runner,/controller\.abort\(\),55000/);
+});

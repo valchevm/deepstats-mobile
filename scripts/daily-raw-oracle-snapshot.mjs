@@ -8,11 +8,13 @@ export async function request(method,action,payload,{base=BASE,token=TOKEN,fetch
  if(method==='GET'&&!['preflight','manifest'].includes(action))throw Error('Unsupported GET action');
  if(method==='POST'&&!['batch','verify'].includes(action))throw Error('Unsupported POST action');
  const url=base+'/api/oracle-archive'+(method==='GET'?'?kind=raw-'+action:'');
- const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),14000);
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),55000);
  try{
   const options={method,headers:{Authorization:'Bearer '+token},signal:controller.signal};
   if(method==='POST'){options.headers['Content-Type']='application/json';options.body=JSON.stringify({...payload,action});}
-  const response=await fetcher(url,options),responseText=await response.text();
+  let response,responseText;
+  try{response=await fetcher(url,options);responseText=await response.text()}
+  catch(e){if(e.name==='AbortError'){const error=new Error('Snapshot request timed out ('+method+' '+action+', 55s): '+(payload?.sheetId??'preflight')+' / row '+(payload?.start??'-'));error.code='SNAPSHOT_REQUEST_TIMEOUT';throw error}throw e}
   let data;
   try{data=JSON.parse(responseText)}catch{throw Error('Invalid JSON from archive endpoint (HTTP '+response.status+'): '+responseText.slice(0,160))}
   if(!response.ok){const error=new Error('HTTP '+response.status+' '+JSON.stringify(data));error.status=response.status;error.errorCode=data.errorCode||data.error;throw error}
@@ -44,6 +46,7 @@ export async function archive({requestFn=request,log=console.log}={}){
   if(!Number.isInteger(sh.id)||!Number.isInteger(sh.rows)||sh.rows<1||!Number.isInteger(sh.cols)||sh.cols<1)throw Error('Invalid source dimensions for '+sh.name);
   for(let start=1;start<=sh.rows;start+=100){
    const payload={day:manifest.day,sheetId:sh.id,start},expected=Math.min(100,sh.rows-start+1);
+   log('ARCHIVING '+sh.name+' rows '+start+'-'+(start+expected-1));
    const saved=await retry('POST','batch',payload,requestFn);
    if(saved.sheetId!==sh.id||saved.start!==start||saved.end!==start+expected-1||saved.count!==expected)throw Error('Archive row-count mismatch '+sh.name+' row '+start);
    const verified=await retry('POST','verify',payload,requestFn);
