@@ -28,7 +28,8 @@ test('full archival checks all chunks and sheets',async()=>{
  assert.equal(calls.filter(x=>x[1]==='batch').length,2);assert.equal(calls.filter(x=>x[1]==='verify').length,4);
 });
 test('failed verification stops archival',async()=>{
- const req=async(method,action,payload)=>action==='preflight'?{ready:true}:action==='manifest'?{day:'2026-11-18',sheets:[{id:1,name:'A',rows:1,cols:1}]}:action==='batch'?{sheetId:1,start:1,end:1,count:1}:(()=>{throw Object.assign(Error('mismatch'),{status:409})})();
+ let hasWritten=false;
+ const req=async(method,action,payload)=>action==='preflight'?{ready:true}:action==='manifest'?{day:'2026-11-18',sheets:[{id:1,name:'A',rows:1,cols:1}]}:action==='batch'?(hasWritten=true,{sheetId:1,start:1,end:1,count:1}):(hasWritten?{verified:false}:(()=>{throw Object.assign(Error('not yet saved'),{status:409})})());
  await assert.rejects(archive({requestFn:req,log:()=>{}}),/Oracle verification mismatch/);
 });
 test('permission errors fail immediately',async()=>{
