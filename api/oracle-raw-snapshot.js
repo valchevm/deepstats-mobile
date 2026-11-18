@@ -8,6 +8,7 @@ import {join} from 'node:path';
 const auth=req=>{const a=Buffer.from(String(req.headers.authorization||'').replace(/^Bearer /,'')),b=Buffer.from(process.env.ADMIN_ACCESS_TOKEN||'');return !!b.length&&a.length===b.length&&timingSafeEqual(a,b)};
 const digest=x=>createHash('sha256').update(JSON.stringify(x)).digest('hex');
 const quote=s=>"'"+s.replace(/'/g,"''")+"'";
+const column=n=>{let out='';while(n>0){n--;out=String.fromCharCode(65+n%26)+out;n=Math.floor(n/26)}return out};
 const day=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Sofia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 async function withOracle(fn){
  let dir,db;try{dir=await mkdtemp(join(tmpdir(),'deepstats-raw-'));await writeFile(join(dir,'ewallet.pem'),process.env.ORACLE_WALLET_PEM,{mode:0o600});
@@ -24,7 +25,7 @@ async function ensure(db){
 }
 async function metadata(s){const r=await s.spreadsheets.get({spreadsheetId:ID,fields:'spreadsheetId,properties(title),sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))'});return r.data.sheets.map(x=>({id:x.properties.sheetId,name:x.properties.title,rows:x.properties.gridProperties.rowCount,cols:x.properties.gridProperties.columnCount}))}
 async function page(s,sh,start,end){
- const range=quote(sh.name)+'!A'+start+':'+end;
+ const range=quote(sh.name)+'!A'+start+':'+column(sh.cols)+end;
  const requests=['FORMATTED_VALUE','UNFORMATTED_VALUE','FORMULA'].map(valueRenderOption=>s.spreadsheets.values.get({spreadsheetId:ID,range,valueRenderOption}));
  const result=await Promise.all(requests);
  return Array.from({length:end-start+1},(_,i)=>({formatted:result[0].data.values?.[i]||[],raw:result[1].data.values?.[i]||[],formulas:result[2].data.values?.[i]||[]}));
