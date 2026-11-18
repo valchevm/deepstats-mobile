@@ -57,6 +57,18 @@ if(kind==='beta'){
  const allMatched=new Map();for(const g of groups){const d=g.criteria;for(const p of all){if(p.market!==d.market||(d.target!=='*'&&p.target!==d.target)||(d.direction!=='*'&&p.direction!==d.direction)||(Number.parseInt(p.level,10)||0)<d.minLevel||p.odds<d.minOdds||p.odds>d.maxOdds)continue;allMatched.set([p.date,p.match,p.selection].join('|'),p)}}
  return send(res,{groups,summary:calc([...allMatched.values()]),items:[...unique.values()],daily:[...days].sort((a,b)=>dateKey(a[0]).localeCompare(dateKey(b[0]))).map(([date,pl])=>({date,pl:+pl.toFixed(2)})),source:'sheets'});
 }
+if(kind==='ten10'){
+ const [current,old]=await Promise.all([read(s,S.strategy),archiveRows(s,historicalTabs.strategy)]);
+ const seen=new Map();for(const r of unionRows(current,old)){
+  if(txt(r[0])!=='Селекция'||!valid(txt(r[1]))||!txt(r[2])||!txt(r[3])||txt(r[5]).replace(/\\s/g,'')!=='10/10')continue;
+  const key=[txt(r[1]),txt(r[2]),txt(r[3]),num(r[4])].join('|');
+  const p={id:'ten-'+seen.size,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),odds:num(r[4]),level:'10/10',result:txt(r[6]),status:state(r[6]),pl:txt(r[7])===''?null:num(r[7]),market:txt(r[10]),group:txt(r[12])};
+  if(!seen.has(key)||seen.get(key).status==='pending'&&p.status!=='pending')seen.set(key,p);
+ }
+ const all=[...seen.values()],items=filter(all,{from,to});
+ const daily=new Map();for(const p of items){if(p.status==='pending')continue;daily.set(p.date,(daily.get(p.date)||0)+(p.pl??(p.status==='win'?p.odds-1:p.status==='loss'?-1:0)))}
+ return send(res,{items,stats:calc(items),daily:[...daily].sort((a,b)=>dateKey(a[0]).localeCompare(dateKey(b[0]))).map(([date,pl])=>({date,pl:+pl.toFixed(2)})),name:'Всички 10/10'});
+}
 if(kind==='matches'){const [main,best,old]=await Promise.all([read(s,S.selections),read(s,S.best),archiveRows(s,historicalTabs.selections)]);const a=uniqueEntries(selections(unionRows(main,old))),b=selections(best);const ids=new Set(a.map(p=>[p.date,p.match,p.selection].join('|')));const merged=[...a,...b.filter(p=>!ids.has([p.date,p.match,p.selection].join('|')))];return send(res,{items:filter(merged,{from,to}),count:merged.length})}
 if(kind==='strategies'){const [current,old]=await Promise.all([read(s,S.strategy),archiveRows(s,historicalTabs.strategy)]);const rows=uniqueEntries(strategies(unionRows(current,old)));const period=filter(rows,{from,to});const by=keys.map(k=>{const items=period.filter(r=>r.strategies.includes(k));return {key:k,name:strategyNames[k],stats:calc(items),items}});return send(res,{groups:by,stats:calc(period.filter(r=>r.strategies.length)),dates:[...new Set(rows.map(r=>r.date))].sort((a,b)=>dateKey(b).localeCompare(dateKey(a)))})}
 if(kind==='builders'){
