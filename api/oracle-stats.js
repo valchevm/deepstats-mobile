@@ -21,6 +21,7 @@ function calc(items){
   out.settled++;
   out.profit+=Number(r.pl??(st==='win'?(Number(r.odds)||1)-1:st==='loss'?-1:0));
  }
+ const odds=items.map(r=>Number(r.odds)).filter(n=>Number.isFinite(n)&&n>1);out.avgOdds=odds.length?Number((odds.reduce((a,b)=>a+b,0)/odds.length).toFixed(2)):null;
  out.profit=Number(out.profit.toFixed(4));
  out.yield=out.settled?Number((100*out.profit/out.settled).toFixed(2)):0;
  out.wr=out.wins+out.losses?Number((100*out.wins/(out.wins+out.losses)).toFixed(2)):0;
