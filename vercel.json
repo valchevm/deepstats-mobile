@@ -2,9 +2,6 @@
   "version": 2,
   "functions": {
     "api/*.js": {
-      "maxDuration": 15
-    },
-    "api/oracle-archive.js": {
       "maxDuration": 60
     }
   },
