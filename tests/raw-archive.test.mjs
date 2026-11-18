@@ -49,7 +49,7 @@ test('raw Oracle SQL uses only stable, non-reserved named binds',async()=>{
  const placeholders=[...new Set([...sql.matchAll(/:([a-zA-Z][a-zA-Z_0-9]*)/g)].map(m=>m[1]))];
  assert.deepEqual(placeholders.sort(),['p_col_count','p_json_data','p_row_digest','p_row_index','p_sheet_key','p_sheet_title','p_snap_day'].sort());
  for(const bind of placeholders){
-  assert.match(src,new RegExp('\\\\b'+bind+':'));
+  assert.match(src,new RegExp('\\b'+bind+':'));
  }
  assert.doesNotMatch(sql,/:rowNum\\b|:raw\\b|:name\\b|:hash\\b|:row\\b/);
 });
