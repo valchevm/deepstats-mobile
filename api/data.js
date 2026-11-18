@@ -9,7 +9,7 @@ function authorizedAdmin(req){
  const a=Buffer.from(supplied),b=Buffer.from(expected);
  return !!expected&&!!supplied&&a.length===b.length&&timingSafeEqual(a,b);
 }
-const S={selections:"'СЕЛЕКЦИИ'!A11:O25000",best:"'СЕЛЕКЦИИ'!A3:O8",strategy:"'СТРАТЕГИИ_ДАННИ'!A2:X25000",builders:"'ДАННИ'!L2:U25000",archive:"'АРХИВ BEST'!A2:L25000",summary:"'СТАТИСТИКА'!A5:F22"};
+const S={selections:"'СЕЛЕКЦИИ'!A11:O25000",best:"'СЕЛЕКЦИИ'!A3:O1000",strategy:"'СТРАТЕГИИ_ДАННИ'!A2:X25000",builders:"'ДАННИ'!L2:U25000",archive:"'АРХИВ BEST'!A2:L25000",summary:"'СТАТИСТИКА'!A5:F22"};
 const txt=v=>String(v??'').trim();const num=v=>Number(txt(v).replace(/\s/g,'').replace(',','.').replace(/[^0-9.+-]/g,''))||0;
 const valid=d=>/^\d{2}\.\d{2}\.\d{4}$/.test(d);
 const dateKey=d=>{const m=txt(d).match(/^(\d{2})\.(\d{2})\.(\d{4})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:''};
@@ -19,6 +19,8 @@ const strategyNames={A:'Отборни удари',B:'Точни удари',C:'
 const keys=['A','B','C','D1','D2','D3','E','F'];const flags={A:13,B:14,C:15,D1:16,D2:17,D3:18,E:21,F:22};
 function selections(rows){return rows.filter(r=>valid(txt(r[0]))&&txt(r[3])&&txt(r[4])).map((r,i)=>({id:'s'+i,date:txt(r[0]),time:txt(r[1]),league:txt(r[2]),match:txt(r[3]),selection:txt(r[4]),odds:num(r[9]),level:txt(r[10]),result:txt(r[11]),status:state(r[11]),matchId:txt(r[14]),checked:txt(r[12])==='✓'}))}
 function strategies(rows){return rows.filter(r=>valid(txt(r[1]))&&txt(r[2])).map((r,i)=>({id:'t'+i,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),odds:num(r[4]),level:txt(r[5]),result:txt(r[6]),status:state(r[6]),pl:txt(r[7])===''?null:num(r[7]),market:txt(r[10]),group:txt(r[12]),strategies:keys.filter(k=>num(r[flags[k]])===1)})).filter(r=>r.strategies.length)}
+function currentBestRows(rows){const out=[];for(const r of rows){const date=txt(r[0]);if(!valid(date))break;out.push(r)}return out}
+function eligibleBest(p){return /^(?:9\/10|10\/10|5\/5)$/.test(txt(p.level).replace(/\s/g,''))}
 function builders(rows){return rows.filter(r=>txt(r[0]).toLowerCase()==='билдър'&&valid(txt(r[1]))).map((r,i)=>({id:'b'+i,date:txt(r[1]),match:txt(r[2]),selection:txt(r[3]),legs:num(r[4]),odds:num(r[5]),result:txt(r[7]),status:state(r[7]),pl:txt(r[8])===''?null:num(r[8])}))}
 function bestBuilderRows(rows){const days=new Map();for(const p of rows){if(!days.has(p.date))days.set(p.date,[]);days.get(p.date).push(p)}return [...days].map(([date,items])=>{const status=items.some(x=>x.status==='loss')?'loss':items.every(x=>x.status==='win'||x.status==='void')?(items.every(x=>x.status==='void')?'void':'win'):'pending';const odds=items.every(x=>Number.isFinite(x.odds)&&x.odds>1)?items.reduce((a,x)=>a*x.odds,1):null;const effective=items.every(x=>Number.isFinite(x.odds)&&x.odds>1)?items.reduce((a,x)=>a*(x.status==='void'?1:x.odds),1):null;return {id:'best-builder-'+date,date,match:'Best of the Day',selection:items.length+' селекции',legs:items.length,odds,status,pl:status==='loss'?-1:status==='void'?0:status==='win'&&effective!==null?effective-1:null}})}
 function calc(rows){let wins=0,losses=0,voids=0,pending=0,profit=0,staked=0;for(const r of rows){if(r.status==='win')wins++;else if(r.status==='loss')losses++;else if(r.status==='void')voids++;else pending++;if(r.status!=='pending'){staked++;profit+=r.pl!==undefined&&r.pl!==null?r.pl:r.status==='win'?(r.odds-1):r.status==='loss'?-1:0}}return {count:rows.length,settled:staked,wins,losses,voids,pending,profit:+profit.toFixed(2),yield:staked?+(profit/staked*100).toFixed(2):0,wr:wins+losses?+(wins/(wins+losses)*100).toFixed(2):0}}
@@ -60,7 +62,7 @@ if(kind==='strategies'){const [current,old]=await Promise.all([read(s,S.strategy
 if(kind==='builders'){
  const [br,allBest,liveBest,oldBuilders]=await Promise.all([read(s,S.builders),read(s,S.archive),read(s,S.best),archiveRows(s,historicalTabs.builders)]);
  const own=filter(uniqueEntries(builders(unionRows(br,oldBuilders))),{from,to});
- const historical=selections(allBest);const current=selections(liveBest);
+ const historical=selections(allBest).filter(eligibleBest);const current=selections(currentBestRows(liveBest)).filter(eligibleBest);
  const known=new Set(historical.map(r=>[r.date,r.match,r.selection].join('|')));
  const best=filter([...historical,...current.filter(r=>!known.has([r.date,r.match,r.selection].join('|')))],{from,to});
  const days=new Map();for(const p of best){if(!days.has(p.date))days.set(p.date,[]);days.get(p.date).push(p)}
