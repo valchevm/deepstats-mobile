@@ -41,20 +41,44 @@ export async function archive({requestFn=request,log=console.log}={}){
  if(!/^\d{4}-\d{2}-\d{2}$/.test(manifest.day)||!Array.isArray(manifest.sheets)||manifest.sheets.length===0)throw Error('Invalid source manifest');
  if(new Set(manifest.sheets.map(x=>x.id)).size!==manifest.sheets.length)throw Error('Duplicate source sheet IDs');
  log('SNAPSHOT '+manifest.day+' SHEETS '+manifest.sheets.length);
- let total=0;
+ let total=0,skipped=0;
+ async function processChunk(sh,start,size){
+  const expected=Math.min(size,sh.rows-start+1);
+  const payload={day:manifest.day,sheetId:sh.id,start,size:expected};
+  // A matching Oracle hash for every row is the only basis for skipping.
+  try{
+   const prior=await retry('POST','verify',payload,requestFn);
+   if(prior.verified===true&&prior.sheetId===sh.id&&prior.start===start&&prior.end===start+expected-1&&prior.rows===expected){
+    skipped+=expected;total+=expected;log('SKIPPED VERIFIED '+sh.name+' rows '+start+'-'+(start+expected-1));return;
+   }
+  }catch(e){
+   if(e.status!==409)throw e;
+  }
+  log('ARCHIVING '+sh.name+' rows '+start+'-'+(start+expected-1));
+  let saved;
+  try{saved=await retry('POST','batch',payload,requestFn)}
+  catch(e){
+   // Divide a slow/failed 500-row operation into smaller independently committed chunks.
+   if(size>100&&(e.status===503||e.status===502||e.status===504||e.status===429||e.code==='SNAPSHOT_REQUEST_TIMEOUT')){
+    const first=Math.ceil(expected/2),second=expected-first;
+    log('REDUCING BATCH '+sh.name+' rows '+start+'-'+(start+expected-1)+' to '+first+' + '+second);
+    await processChunk(sh,start,first);
+    if(second)await processChunk(sh,start+first,second);
+    return;
+   }
+   throw e;
+  }
+  if(saved.sheetId!==sh.id||saved.start!==start||saved.end!==start+expected-1||saved.count!==expected)throw Error('Archive row-count mismatch '+sh.name+' row '+start);
+  const verified=await retry('POST','verify',payload,requestFn);
+  if(verified.verified!==true||verified.sheetId!==sh.id||verified.start!==start||verified.end!==start+expected-1||verified.rows!==expected)throw Error('Oracle verification mismatch '+sh.name+' row '+start);
+  total+=expected;
+ }
  for(const sh of manifest.sheets){
   if(!Number.isInteger(sh.id)||!Number.isInteger(sh.rows)||sh.rows<1||!Number.isInteger(sh.cols)||sh.cols<1)throw Error('Invalid source dimensions for '+sh.name);
-  for(let start=1;start<=sh.rows;start+=100){
-   const payload={day:manifest.day,sheetId:sh.id,start},expected=Math.min(100,sh.rows-start+1);
-   log('ARCHIVING '+sh.name+' rows '+start+'-'+(start+expected-1));
-   const saved=await retry('POST','batch',payload,requestFn);
-   if(saved.sheetId!==sh.id||saved.start!==start||saved.end!==start+expected-1||saved.count!==expected)throw Error('Archive row-count mismatch '+sh.name+' row '+start);
-   const verified=await retry('POST','verify',payload,requestFn);
-   if(verified.verified!==true||verified.sheetId!==sh.id||verified.start!==start||verified.end!==start+expected-1||verified.rows!==expected)throw Error('Oracle verification mismatch '+sh.name+' row '+start);
-   total+=expected;
-  }
+  for(let start=1;start<=sh.rows;start+=500)await processChunk(sh,start,Math.min(500,sh.rows-start+1));
   log('VERIFIED '+sh.name+' '+sh.rows+' rows');
  }
+ log('REUSED VERIFIED ROWS '+skipped);
  log('RAW ORACLE SNAPSHOT VERIFIED '+manifest.day+' '+manifest.sheets.length+' sheets '+total+' rows');
  return {day:manifest.day,sheets:manifest.sheets.length,rows:total,verified:true};
 }
