@@ -1,5 +1,9 @@
 name: DeepStats safe master-sheet sync
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/safe-master-sheet-sync.yml'
   schedule:
     # Europe/Sofia: 07:00 and 18:00, with DST-safe double UTC slots.
     - cron: '0 4 * * *'
