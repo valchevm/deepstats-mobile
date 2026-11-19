@@ -77,7 +77,7 @@ export async function archive({requestFn=request,log=console.log,wait=requestFn=
   }
   log('ARCHIVING '+sh.name+' rows '+start+'-'+(start+expected-1));
   let saved;
-  try{saved=await retry('POST','batch',payload,requestFn)}
+  try{saved=await retry('POST','batch',payload,requestFn,{wait})}
   catch(e){
    // Divide a slow/failed 500-row operation into smaller independently committed chunks.
    if(size>100&&!e.quotaLimited&&e.status!==429&&String(e.errorCode)!=='429'&&e.errorCode!=='SHEETS_RATE_LIMITED'&&(e.status===503||e.status===502||e.status===504||e.code==='SNAPSHOT_REQUEST_TIMEOUT')){
