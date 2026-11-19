@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {plan} from '../api/sync-workbook.js';
+const t={name:'СЕЛЕКЦИИ',width:18,key:[0,3,5]};
+const row=()=>['19.11.2026','22:00','League','Alpha – Beta','Под 2.5','Under 2.5','И двата','9/10','9/10',1.7,'9/10','Чака','','','','','',''];
+test('unchanged selections produce zero writes',()=>{const r=row();assert.deepEqual(plan([r],[r.slice()],t,50),{writes:[],conflicts:[]})});
+test('pending result settles in place without changing the match',()=>{const a=row(),b=row();a[11]='Печели';const x=plan([a],[b],t,50);assert.equal(x.conflicts.length,0);assert.deepEqual(x.writes,[{row:50,col:12,value:'Печели'}])});
+test('final result conflicts are blocked',()=>{const a=row(),b=row();a[11]='Печели';b[11]='Губи';assert.equal(plan([a],[b],t,50).conflicts[0].type,'SETTLED_RESULT_CONFLICT')});
+test('historical row shift is blocked even when source has valid data',()=>{const a=row(),b=row();a[3]='Other – Team';assert.equal(plan([a],[b],t,50).conflicts[0].type,'ROW_IDENTITY_CHANGED')});
+test('derived formulas are protected',()=>{const a=row(),b=row();a[14]='=A50&D50';b[14]='=A50&"-"&D50';assert.equal(plan([a],[b],t,50).conflicts[0].type,'FORMULA_DIFFERENCE')});
+test('never silently clears recorded results',()=>{const a=row(),b=row();a[11]='';b[11]='Печели';assert.equal(plan([a],[b],t,50).conflicts[0].type,'SOURCE_CLEAR_REQUIRES_REVIEW')});
+test('new complete rows can be appended into empty slots',()=>{const a=row(),b=Array(18).fill('');const x=plan([a],[b],t,50);assert.equal(x.conflicts.length,0);assert.equal(x.writes.length,11)});
+test('manual checkbox conflict stops write',()=>{const a=row(),b=row();a[12]='';b[12]='✓';assert.equal(plan([a],[b],t,50).conflicts[0].type,'SOURCE_CLEAR_REQUIRES_REVIEW')});
+test('JSON records stay keyed by OddAlerts ID',()=>{const t={name:'МАЧОВЕ JSON',width:11,key:[0,3,4]},a=['19.11.2026','22:00','League','Alpha – Beta','ID-1','','', '{"v":2}','','',''],b=a.slice();b[4]='ID-2';assert.equal(plan([a],[b],t,2).conflicts[0].type,'ROW_IDENTITY_CHANGED')});
