@@ -31,7 +31,9 @@ test('one consistent Data Analytics B dashboard with builder and directly visibl
  assert.doesNotMatch(app,/data-set-design="A"/);
  assert.doesNotMatch(app,/data-set-design="C"/);
  assert.match(app,/ds20BestBuilder\(buildersData\.proposals,dateLabel\)/);
- assert.match(app,/ds20StrategyWindow\(strategySelections\)/);
+ assert.match(app,/dsStrategyAccordion\(af,'Стратегии A–F · днес','today-af'/);
+ assert.match(app,/dsStrategyAccordion\(beta,'Beta Strategy · днес','today-beta'/);
+ assert.match(app,/dsStrategyAccordion\(tenData.items\|\|\[\],'⭐ Всички 10\/10 · днес','today-ten'/);
  assert.doesNotMatch(app.slice(app.indexOf('async function home(){'),app.indexOf('async function matches(){')),/api\('matches'/);
  assert.doesNotMatch(app.slice(app.indexOf('function ds20StrategyWindow('),app.indexOf('function ds19StatsPanel(')),/<details/);
 });
@@ -40,7 +42,7 @@ test('historical A-F Oracle panel lives in Statistics not the home fetch',()=>{
  assert.match(app,/async function statistics\(\)/);
  assert.match(app,/let historicalPanel=''/);
  assert.match(app,/ds19StatsPanel\(full\.selected,full,/);
- assert.match(app,/\$\{historicalPanel\}\$\{dates\(\)\}/);
+ assert.match(app,/\$\{historicalPanel\}\$\{tenPanel\}\$\{betaPanel\}\$\{dates\(\)\}/);
  assert.doesNotMatch(app.slice(app.indexOf('async function home(){'),app.indexOf('async function matches(){')), /\/api\/oracle-stats/);
 });
 test('compact confidence and real crest folder are wired',()=>{
@@ -55,7 +57,7 @@ test('new scripts and styles share the same cache-busting versions',()=>{
  assert.ok(appUrl&&cssUrl);
  assert.ok(sw.includes(appUrl));
  assert.ok(sw.includes(cssUrl));
- assert.match(sw,/deepstats-static-v31/);
+ assert.match(sw,/const CACHE='deepstats-static-v\d+'/);
 });
 test('existing Oracle and Sheets API source files are still referenced',()=>{
  assert.match(app,/api\('builders'/);
@@ -82,7 +84,7 @@ test('Builder history renders without historical statistics scope errors',()=>{
  const builder=app.slice(app.indexOf('async function builders(){'),app.indexOf('function chart(points)'));
  const stats=app.slice(app.indexOf('async function statistics(){'));
  assert.doesNotMatch(builder,/historicalPanel/);
- assert.match(stats,/\$\{historicalPanel\}\$\{dates\(\)\}/);
+ assert.match(stats,/\$\{historicalPanel\}\$\{tenPanel\}\$\{betaPanel\}\$\{dates\(\)\}/);
  assert.match(builder,/Promise\.allSettled/);
  assert.match(builder,/oracleBuilderHistory/);
  assert.match(app,/t==='builders'\)\&\&state\.tab!==t\)state\.mode='all'/);
@@ -136,7 +138,11 @@ test('V27 match visibility, concise card and responsive archive contracts',()=>{
  const matches=app.slice(app.indexOf('async function matches(){'),app.indexOf('async function strategies(){'));
  const card=app.slice(app.indexOf('function groupedCard(g){'),app.indexOf('function bindFixtures()'));
  assert.doesNotMatch(home,/Всички селекции|api\('matches'/);
- assert.match(matches,/ds27VisibleMatches\(period\(\)\)/);
+ assert.match(matches,/api\('strategies'\),api\('beta'\),api\('ten10'\)/);
+ assert.match(matches,/iso\(p\.date\)>iso\(today\(\)\)/);
+ assert.match(matches,/dsStrategyAccordion\(a,'Стратегии A–F · следващи дни'/);
+ assert.match(matches,/dsStrategyAccordion\(b,'Beta Strategy · следващи дни'/);
+ assert.match(matches,/dsStrategyAccordion\(c,'⭐ Всички 10\/10 · следващи дни'/);
  assert.match(card,/ds27Ratio/);
  assert.doesNotMatch(card,/Какво точно е записано|Оригинална селекция в OddAlerts|Не е посочено/);
  assert.match(css,/\.ds27-profile-grid/);
