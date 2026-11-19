@@ -54,11 +54,11 @@ export async function retry(method,action,payload,requestFn=request,{wait=sleep,
  }
  throw last;
 }
-export async function archive({requestFn=request,log=console.log}={}){
- const preflight=await retry('GET','preflight',undefined,requestFn);
+export async function archive({requestFn=request,log=console.log,wait=requestFn===request?sleep:async()=>{}}={}){
+ const preflight=await retry('GET','preflight',undefined,requestFn,{wait});
  if(preflight.ready!==true)throw Error('Oracle archive preflight did not pass');
  log('ORACLE PREFLIGHT OK '+preflight.schema);
- const manifest=await retry('GET','manifest',undefined,requestFn);
+ const manifest=await retry('GET','manifest',undefined,requestFn,{wait});
  if(!/^\d{4}-\d{2}-\d{2}$/.test(manifest.day)||!Array.isArray(manifest.sheets)||manifest.sheets.length===0)throw Error('Invalid source manifest');
  if(new Set(manifest.sheets.map(x=>x.id)).size!==manifest.sheets.length)throw Error('Duplicate source sheet IDs');
  log('SNAPSHOT '+manifest.day+' SHEETS '+manifest.sheets.length);
@@ -68,7 +68,7 @@ export async function archive({requestFn=request,log=console.log}={}){
   const payload={day:manifest.day,sheetId:sh.id,start,size:expected};
   // A matching Oracle hash for every row is the only basis for skipping.
   try{
-   const prior=await retry('POST','verify',payload,requestFn);
+   const prior=await retry('POST','verify',payload,requestFn,{wait});
    if(prior.verified===true&&prior.sheetId===sh.id&&prior.start===start&&prior.end===start+expected-1&&prior.rows===expected){
     skipped+=expected;total+=expected;log('SKIPPED VERIFIED '+sh.name+' rows '+start+'-'+(start+expected-1));return;
    }
@@ -90,7 +90,7 @@ export async function archive({requestFn=request,log=console.log}={}){
    throw e;
   }
   if(saved.sheetId!==sh.id||saved.start!==start||saved.end!==start+expected-1||saved.count!==expected)throw Error('Archive row-count mismatch '+sh.name+' row '+start);
-  const verified=await retry('POST','verify',{...payload,verification:'stored'},requestFn);
+  const verified=await retry('POST','verify',{...payload,verification:'stored'},requestFn,{wait});
   if(verified.verified!==true||verified.sheetId!==sh.id||verified.start!==start||verified.end!==start+expected-1||verified.rows!==expected)throw Error('Oracle verification mismatch '+sh.name+' row '+start);
   total+=expected;
  }

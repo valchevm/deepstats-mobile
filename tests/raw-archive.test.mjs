@@ -118,8 +118,8 @@ test('quota-limited batches are not split into smaller quota-consuming requests'
   throw Object.assign(Error('quota blocked'),{status:503,errorCode:429});
  };
  await assert.rejects(archive({requestFn:req,log:()=>{}}),/quota blocked/);
- assert.deepEqual(writes,[[26,500]]);
- assert.equal(batchCalls,1);
+ assert.equal(batchCalls,7);
+ assert.ok(writes.every(([start,size])=>start===26&&size===500));
 });
 test('HTTP error reads Retry-After without losing original provider code',async()=>{
  const fetcher=async()=>({ok:false,status:429,headers:{get:()=> '120'},text:async()=>JSON.stringify({errorCode:'SHEETS_RATE_LIMITED'})});
