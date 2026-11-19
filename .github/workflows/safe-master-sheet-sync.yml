@@ -1,0 +1,44 @@
+name: DeepStats safe master-sheet sync
+on:
+  schedule:
+    # Europe/Sofia: 07:00 and 18:00, with DST-safe double UTC slots.
+    - cron: '0 4 * * *'
+    - cron: '0 5 * * *'
+    - cron: '0 15 * * *'
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+    inputs:
+      sync_mode:
+        description: 'dry = preview only; live = guarded write after all checks'
+        required: false
+        type: choice
+        default: dry
+        options:
+          - dry
+          - live
+permissions:
+  contents: read
+concurrency:
+  group: deepstats-safe-master-sheet-sync
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and planner tests (no Google writes)
+        run: |
+          node --check api/sync-workbook.js
+          node --check scripts/sync-workbook-run.mjs
+          node --test tests/safe-workbook-sync.test.mjs
+      - name: Sync master tabs only after conflict-free preflight
+        env:
+          ADMIN_ACCESS_TOKEN: ${{ secrets.ADMIN_ACCESS_TOKEN }}
+          DEEPSTATS_URL: https://deepstats-mobile.vercel.app
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          SYNC_MODE: ${{ github.event_name == 'schedule' && 'live' || inputs.sync_mode || 'dry' }}
+        run: node scripts/sync-workbook-run.mjs
