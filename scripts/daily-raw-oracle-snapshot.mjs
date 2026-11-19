@@ -2,12 +2,20 @@
 import {pathToFileURL} from 'node:url';
 const BASE=(process.env.DEEPSTATS_URL||'https://deepstats-mobile.vercel.app').replace(/\/$/,'');
 const TOKEN=process.env.ADMIN_ACCESS_TOKEN;
+const MIN_REQUEST_INTERVAL_MS=Number(process.env.SNAPSHOT_REQUEST_INTERVAL_MS??'8000');
+let lastLiveRequestAt=0;
+const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 export async function request(method,action,payload,{base=BASE,token=TOKEN,fetcher=fetch}={}){
  if(!token)throw Error('Missing ADMIN_ACCESS_TOKEN');
  if(!['GET','POST'].includes(method))throw Error('Unsupported method');
  if(method==='GET'&&!['preflight','manifest'].includes(action))throw Error('Unsupported GET action');
  if(method==='POST'&&!['batch','verify'].includes(action))throw Error('Unsupported POST action');
  const url=base+'/api/oracle-archive'+(method==='GET'?'?kind=raw-'+action:'');
+ if(fetcher===fetch&&MIN_REQUEST_INTERVAL_MS>0){
+  const gap=lastLiveRequestAt+MIN_REQUEST_INTERVAL_MS-Date.now();
+  if(gap>0)await sleep(gap);
+  lastLiveRequestAt=Date.now();
+ }
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),55000);
  try{
   const options={method,headers:{Authorization:'Bearer '+token},signal:controller.signal};
@@ -17,18 +25,31 @@ export async function request(method,action,payload,{base=BASE,token=TOKEN,fetch
   catch(e){if(e.name==='AbortError'){const error=new Error('Snapshot request timed out ('+method+' '+action+', 55s): '+(payload?.sheetId??'preflight')+' / row '+(payload?.start??'-'));error.code='SNAPSHOT_REQUEST_TIMEOUT';throw error}throw e}
   let data;
   try{data=JSON.parse(responseText)}catch{throw Error('Invalid JSON from archive endpoint (HTTP '+response.status+'): '+responseText.slice(0,160))}
-  if(!response.ok){const error=new Error('HTTP '+response.status+' '+JSON.stringify(data));error.status=response.status;error.errorCode=data.errorCode||data.error;throw error}
+  if(!response.ok){
+   const error=new Error('HTTP '+response.status+' '+JSON.stringify(data));
+   error.status=response.status;
+   error.errorCode=data.errorCode||data.error;
+   error.retryAfterSeconds=Number(data.retryAfterSeconds||response.headers?.get?.('Retry-After')||0);
+   error.quotaLimited=response.status===429||String(error.errorCode)==='429'||error.errorCode==='SHEETS_RATE_LIMITED';
+   throw error;
+  }
   return data;
  }finally{clearTimeout(timeout)}
 }
-export async function retry(method,action,payload,requestFn=request){
+export async function retry(method,action,payload,requestFn=request,{wait=sleep,onRetry=console.warn}={}){
  let last;
- for(let attempt=1;attempt<=3;attempt++){
+ for(let attempt=1;attempt<=7;attempt++){
   try{return await requestFn(method,action,payload)}catch(e){
    last=e;
+   const quota=e.quotaLimited===true||e.status===429||String(e.errorCode)==='429'||e.errorCode==='SHEETS_RATE_LIMITED';
    const permanent=[400,401,403,404,409].includes(e.status)||['ARCHIVE_SCHEMA_SETUP_REQUIRED','ORA-01031','ORA-00942'].includes(e.errorCode);
-   if(permanent||attempt===3)break;
-   await new Promise(resolve=>setTimeout(resolve,attempt*1500));
+   if(permanent||attempt===7)break;
+   if(!quota&&!([502,503,504].includes(e.status)||e.code==='SNAPSHOT_REQUEST_TIMEOUT'))break;
+   // Google Sheets project/user quotas reset per minute. Splitting a 429 batch
+   // into many requests makes exhaustion worse: wait for the next quota window.
+   const base=quota?Math.max(65000,Math.ceil((Number(e.retryAfterSeconds)||0)*1000)):Math.min(15000,2500*attempt);
+   onRetry('Archive '+action+' retry '+attempt+'/6 after '+Math.ceil(base/1000)+'s ('+(quota?'Google Sheets quota':e.code||e.status)+')');
+   await wait(base);
   }
  }
  throw last;
@@ -59,7 +80,7 @@ export async function archive({requestFn=request,log=console.log}={}){
   try{saved=await retry('POST','batch',payload,requestFn)}
   catch(e){
    // Divide a slow/failed 500-row operation into smaller independently committed chunks.
-   if(size>100&&(e.status===503||e.status===502||e.status===504||e.status===429||e.code==='SNAPSHOT_REQUEST_TIMEOUT')){
+   if(size>100&&!e.quotaLimited&&e.status!==429&&String(e.errorCode)!=='429'&&e.errorCode!=='SHEETS_RATE_LIMITED'&&(e.status===503||e.status===502||e.status===504||e.code==='SNAPSHOT_REQUEST_TIMEOUT')){
     const first=Math.ceil(expected/2),second=expected-first;
     log('REDUCING BATCH '+sh.name+' rows '+start+'-'+(start+expected-1)+' to '+first+' + '+second);
     await processChunk(sh,start,first);

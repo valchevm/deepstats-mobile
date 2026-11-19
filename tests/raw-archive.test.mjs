@@ -91,3 +91,42 @@ test('failed bulk write splits into smaller independently verified batches',asyn
  assert.equal(result.rows,525);
  assert.deepEqual(writes.map(x=>[x.start,x.size]),[[26,250],[276,250],[1,25]]);
 });
+
+test('HTTP 503 with nested Google 429 is retried as quota, not a generic server failure',async()=>{
+ let attempts=0;const waits=[],logs=[];
+ const fn=async()=>{attempts++;if(attempts<3)throw Object.assign(Error('limited'),{status:503,errorCode:429});return {ready:true}};
+ const result=await retry('GET','preflight',undefined,fn,{wait:async ms=>waits.push(ms),onRetry:s=>logs.push(s)});
+ assert.deepEqual(result,{ready:true});
+ assert.equal(attempts,3);
+ assert.deepEqual(waits,[65000,65000]);
+ assert.ok(logs.every(x=>x.includes('Google Sheets quota')));
+});
+test('HTTP 429 respects Retry-After when greater than one minute',async()=>{
+ let attempts=0;const waits=[];
+ await retry('POST','verify',{},async()=>{attempts++;if(attempts===1)throw Object.assign(Error('quota'),{status:429,errorCode:'SHEETS_RATE_LIMITED',retryAfterSeconds:100});return {verified:true}},{wait:async ms=>waits.push(ms),onRetry:()=>{}});
+ assert.equal(attempts,2);
+ assert.deepEqual(waits,[100000]);
+});
+test('quota-limited batches are not split into smaller quota-consuming requests',async()=>{
+ const writes=[],events=[];let batchCalls=0;
+ const req=async(method,action,payload)=>{
+  events.push(action);
+  if(action==='preflight')return {ready:true,schema:'ADMIN.DS_RAW_SHEET_ROWS'};
+  if(action==='manifest')return {day:'2026-11-18',sheets:[{id:3,name:'ABC',rows:525,cols:2}]};
+  if(action==='verify')throw Object.assign(Error('not stored'),{status:409});
+  writes.push([payload.start,payload.size]);batchCalls++;
+  throw Object.assign(Error('quota blocked'),{status:503,errorCode:429});
+ };
+ await assert.rejects(archive({requestFn:req,log:()=>{}}),/quota blocked/);
+ assert.deepEqual(writes,[[26,500]]);
+ assert.equal(batchCalls,1);
+});
+test('HTTP error reads Retry-After without losing original provider code',async()=>{
+ const fetcher=async()=>({ok:false,status:429,headers:{get:()=> '120'},text:async()=>JSON.stringify({errorCode:'SHEETS_RATE_LIMITED'})});
+ await assert.rejects(request('GET','preflight',undefined,{base:'https://example.com',token:'t',fetcher}),e=>e.status===429&&e.errorCode==='SHEETS_RATE_LIMITED'&&e.retryAfterSeconds===120&&e.quotaLimited===true);
+});
+test('quota response is forwarded as HTTP 429 by Oracle snapshot API',async()=>{
+ const source=await (await import('node:fs/promises')).readFile(new URL('../lib/_raw_snapshot.js',import.meta.url),'utf8');
+ assert.match(source,/res\.status\(429\)\.json\(\{errorCode:'SHEETS_RATE_LIMITED'/);
+ assert.doesNotMatch(source,/Promise\.all\(requests\)/);
+});

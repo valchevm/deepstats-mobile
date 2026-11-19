@@ -177,3 +177,10 @@ For each logical GitHub change:
 - This is a **lossless raw staging archive, not yet a complete normalized Oracle import**. The \`DS_MATCHES\`, \`DS_SELECTIONS\`, \`DS_BUILDERS\`, \`DS_BUILDER_LEGS\`, \`DS_STRATEGIES\` and app/API integration require separate reconciliation and tests.
 - Release gate: confirm schema permissions, green Vercel deployment, live action completed with verified counts/hashes per sheet, normalized match/selection/leg parity, strategy-definition/version preservation, and app historical/current split before deleting anything from a NEW working sheet.
 - The existing lossless raw snapshot workflow has failed/cancelled in recent runs; new path deliberately avoids unbounded entire-sheet API requests. Original must remain available as fallback.
+
+### 2026-11-19 — Fix Google Sheets HTTP 429 quota during original raw snapshot
+- The automated raw snapshot read failed with HTTP 503 wrapping Google quota error 429 while verifying original `СЕЛЕКЦИИ` rows 1–25. Observed in GitHub Actions 44526300482.
+- `lib/_raw_snapshot.js` now relays Sheets quota as HTTP 429 with `SHEETS_RATE_LIMITED` and `Retry-After`, and reads three value representations sequentially instead of firing three simultaneous Sheets calls.
+- `scripts/daily-raw-oracle-snapshot.mjs` now paces real outgoing API calls (8 seconds by default), recognizes both previous `503 {errorCode:429}` and new 429 status, retries with at least 65 seconds wait for quota reset, and never recursively splits batches when blocked by a quota.
+- The source Google Sheets workbook is READ ONLY, unchanged. Oracle table contents remain guarded by chunk verification; no deletes occur. Added regression tests for quota recovery and no splitting.
+- **Verification state:** code/CI only until an authenticated GitHub archive job completes; do not infer that the full snapshot finished from tests.
