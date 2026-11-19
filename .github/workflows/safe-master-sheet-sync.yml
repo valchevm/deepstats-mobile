@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/safe-master-sheet-sync.yml'
+      - 'scripts/sync-workbook-run.mjs'
+      - 'api/sync-workbook.js'
+      - 'lib/_safe_sync_plan.js'
   schedule:
     # Europe/Sofia: 07:00 and 18:00, with DST-safe double UTC slots.
     - cron: '0 4 * * *'
