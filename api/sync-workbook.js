@@ -66,5 +66,5 @@ export default async function handler(req,res){
   const after=await read(api,TARGET,range,count,tab.width);
   const verified=hashes(s)===hashes(after);
   return res.status(verified?200:409).json({sheet:b.sheet,start,count,verified,writtenCells:ranges.length,sourceHash,targetHash:hashes(after),errorCode:verified?undefined:'READBACK_MISMATCH'});
- }catch(e){console.error('safe-master-sync',e.response?.status||e.code||'UNKNOWN');return res.status(503).json({errorCode:'SYNC_UNAVAILABLE',code:e.response?.status||e.code||'UNKNOWN'});}
+ }catch(e){console.error('safe-master-sync',e.response?.status||e.code||'UNKNOWN');return res.status(Number(e.response?.status||e.code)===429?429:503).json({errorCode:'SYNC_UNAVAILABLE',code:e.response?.status||e.code||'UNKNOWN'});}
 }
