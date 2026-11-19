@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {plan} from '../api/sync-workbook.js';
+import {plan} from '../lib/_safe_sync_plan.js';
 const t={name:'СЕЛЕКЦИИ',width:18,key:[0,3,5]};
 const row=()=>['19.11.2026','22:00','League','Alpha – Beta','Под 2.5','Under 2.5','И двата','9/10','9/10',1.7,'9/10','Чака','','','','','',''];
 test('unchanged selections produce zero writes',()=>{const r=row();assert.deepEqual(plan([r],[r.slice()],t,50),{writes:[],conflicts:[]})});
