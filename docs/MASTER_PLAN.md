@@ -167,3 +167,13 @@ For each logical GitHub change:
 - [ ] Verify on real Android screens (320, 360, 390, 430 px), dark/light themes, long translated labels, date filters, history pagination, login and PWA cache refresh.
 - [ ] Validate actual live Google Sheets and Oracle data; UI source-level checks alone do not confirm production parity.
 - [ ] Release to main/Vercel only after CI and visual checks.
+
+
+### 2026-11-19 — Safe full-fidelity migration from original workbook (new, NOT production verified)
+- New manually invoked \`api/oracle-lossless-import.js\` / \`scripts/migrate-original-to-oracle.mjs\` and \`.github/workflows/oracle-lossless-migrate.yml\`.
+- Original source workbook hard-pinned to \`1iEufNQy8doCcfPA0LkHxPLvvXKiRKc60rH2dtyVx_oo\`; source is read-only and untouched. Twelve tabs include full picks, BEST singles, JSON match stats, builders, strategy flags/configurations, odds and supporting lists.
+- Payload stores \`formatted\`, \`raw\`, and \`formulas\` cell representations for every occupied row, preserving source row numbers and source sheet IDs. Target: existing \`ADMIN.DS_RAW_SHEET_ROWS\` Oracle snapshot schema. Failed hashes abort; batches are rerunnable using stable day/sheet/row keys.
+- Scan/preview mode: \`workflow_dispatch mode=dry\`; actual uploads only via explicit \`mode=live\`. No deletions, cleanup, overwriting original Sheets, or automatic activation.
+- This is a **lossless raw staging archive, not yet a complete normalized Oracle import**. The \`DS_MATCHES\`, \`DS_SELECTIONS\`, \`DS_BUILDERS\`, \`DS_BUILDER_LEGS\`, \`DS_STRATEGIES\` and app/API integration require separate reconciliation and tests.
+- Release gate: confirm schema permissions, green Vercel deployment, live action completed with verified counts/hashes per sheet, normalized match/selection/leg parity, strategy-definition/version preservation, and app historical/current split before deleting anything from a NEW working sheet.
+- The existing lossless raw snapshot workflow has failed/cancelled in recent runs; new path deliberately avoids unbounded entire-sheet API requests. Original must remain available as fallback.

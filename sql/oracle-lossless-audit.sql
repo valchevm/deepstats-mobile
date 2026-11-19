@@ -1,0 +1,10 @@
+-- Read-only diagnostics: no drops or deletes. Run against the Oracle owner schema.
+SELECT TABLE_NAME FROM ALL_TABLES WHERE OWNER='ADMIN' AND TABLE_NAME IN
+('DS_RAW_SHEET_ROWS','DS_MATCHES','DS_SELECTIONS','DS_STRATEGIES','DS_SELECTION_STRATEGIES','DS_BUILDERS','DS_BUILDER_LEGS');
+SELECT SHEET_NAME, COUNT(*) AS STORED_NONEMPTY_ROWS,
+       COUNT(DISTINCT ROW_NUMBER) AS DISTINCT_SOURCE_ROWS
+FROM ADMIN.DS_RAW_SHEET_ROWS
+WHERE SNAPSHOT_DAY = (SELECT MAX(SNAPSHOT_DAY) FROM ADMIN.DS_RAW_SHEET_ROWS)
+GROUP BY SHEET_NAME ORDER BY SHEET_NAME;
+-- Never remove original data until every source row has been verified and
+-- normalized Oracle records / every builder leg / JSON payload are reconciled.

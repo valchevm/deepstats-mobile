@@ -1,0 +1,37 @@
+name: DeepStats lossless Oracle migration (manual)
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry = check only; live = import and verify every occupied source row"
+        required: true
+        default: dry
+        type: choice
+        options:
+          - dry
+          - live
+permissions:
+  contents: read
+concurrency:
+  group: deepstats-lossless-source-import
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Validate import scripts
+        run: |
+          node --check api/oracle-lossless-import.js
+          node --check scripts/migrate-original-to-oracle.mjs
+      - name: Preflight, migrate and independently verify rows in Oracle
+        env:
+          ADMIN_ACCESS_TOKEN: ${{ secrets.ADMIN_ACCESS_TOKEN }}
+          DEEPSTATS_URL: https://deepstats-mobile.vercel.app
+          MIGRATION_MODE: ${{ inputs.mode }}
+          BATCH_SIZE: '50'
+        run: node scripts/migrate-original-to-oracle.mjs
