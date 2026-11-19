@@ -22,7 +22,8 @@ function authz(req){
  const a=Buffer.from(got),b=Buffer.from(expected);
  return !!got&&!!expected&&a.length===b.length&&timingSafeEqual(a,b);
 }
-function plan(source,target,tab,start){
+const sheetIsSelection=t=>t.name==='СЕЛЕКЦИИ'||t.name==='АРХИВ BEST';
+export function plan(source,target,tab,start){
  const writes=[],conflicts=[];
  for(let i=0;i<source.length;i++){
   const s=source[i],d=target[i],sr=start+i;
@@ -42,7 +43,15 @@ function plan(source,target,tab,start){
    if(!normalized(a)){conflicts.push({row:sr,col:j+1,type:'SOURCE_CLEAR_REQUIRES_REVIEW'});continue}
    if(!skey&&normalized(b)){conflicts.push({row:sr,col:j+1,type:'UNKEYED_OVERWRITE'});continue}
    // Preserve manually entered selections, results, and checkboxes in the new workbook.
-   if([12,13].includes(j+1)&&normalized(b)){conflicts.push({row:sr,col:j+1,type:'MANUAL_FIELD_CONFLICT'});continue}
+   if(j===11&&sheetIsSelection(tab)){
+    const previous=normalized(b).trim().toLowerCase();
+    const next=normalized(a).trim().toLowerCase();
+    const pending=v=>!v||v==='чака'||v==='pending';
+    if(!pending(previous)&&previous!==next){conflicts.push({row:sr,col:j+1,type:'SETTLED_RESULT_CONFLICT'});continue}
+   }
+   if(j===12&&sheetIsSelection(tab)&&normalized(b)){
+    conflicts.push({row:sr,col:j+1,type:'MANUAL_CHECKBOX_CONFLICT'});continue
+   }
    writes.push({row:sr,col:j+1,value:a});
   }
  }
