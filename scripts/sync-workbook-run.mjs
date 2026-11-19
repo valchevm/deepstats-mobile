@@ -26,10 +26,14 @@ async function request(method,body){
   return data;
  }finally{clearTimeout(timer)}
 }
+const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function retry(method,body){
- let last;for(let i=0;i<3;i++){
-  try{return await request(method,body)}catch(e){last=e;if(![429,502,503,504].includes(e.status)||i===2)break;
-   console.warn('Transient sync read error, retry '+(i+1));await new Promise(r=>setTimeout(r,1500*(i+1)));
+ let last;for(let i=0;i<7;i++){
+  try{return await request(method,body)}catch(e){last=e;if(![429,502,503,504].includes(e.status)||i===6)break;
+   // Google Sheets quota is per user and per minute; use an actual cooldown.
+   const delay=e.status===429?Math.min(80000,12000*(i+1)):Math.min(20000,4000*(i+1));
+   console.warn('Transient sync request '+e.status+', retry '+(i+1)+' after '+delay+'ms');
+   await pause(delay);
   }
  }
  throw last;
@@ -50,6 +54,7 @@ for(const t of entries){
   const d=await retry('POST',{sheet:t.key,start,count,dryRun:true});
   if(d.conflicts?.length)throw Error('Unsafe source difference '+t.key+' row '+start);
   preview.push({sheet:t.key,start,count,sourceHash:d.sourceHash,targetHash:d.targetHash,changed:d.plannedCells});
+  await pause(5500);
  }
 }
 console.log('PREVIEW OK '+preview.length+' chunks; total changed cells '+preview.reduce((a,x)=>a+x.changed,0));
@@ -64,5 +69,6 @@ for(const job of preview.filter(x=>x.changed)){
  if(!done.verified)throw Error('Sync failed verification: '+job.sheet+' '+job.start);
  written+=done.writtenCells||0;
  console.log('VERIFIED '+job.sheet+' rows '+job.start+'-'+(job.start+job.count-1)+' cells '+done.writtenCells);
+ await pause(5500);
 }
 console.log('MASTER SYNC SUCCESS: '+written+' cells updated and verified');
