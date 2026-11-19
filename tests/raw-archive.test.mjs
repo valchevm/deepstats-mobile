@@ -25,7 +25,9 @@ test('full archival checks all chunks and sheets',async()=>{
   return action==='batch'?{sheetId:payload.sheetId,start:payload.start,end:payload.start+size-1,count:size}:calls.some(x=>x[1]==='batch'&&x[2].sheetId===payload.sheetId&&x[2].start===payload.start)?{verified:true,sheetId:payload.sheetId,start:payload.start,end:payload.start+size-1,rows:size}:(()=>{throw Object.assign(Error('unarchived'),{status:409})})();
  };
  assert.deepEqual(await archive({requestFn:req,log:()=>{}}),{day:'2026-11-18',sheets:2,rows:202,verified:true});
- assert.equal(calls.filter(x=>x[1]==='batch').length,2);assert.equal(calls.filter(x=>x[1]==='verify').length,4);
+ assert.equal(calls.filter(x=>x[1]==='batch').length,3);assert.equal(calls.filter(x=>x[1]==='verify').length,6);
+ assert.deepEqual(calls.filter(x=>x[1]==='batch').map(x=>[x[2].sheetId,x[2].start,x[2].size]),[[1,26,176],[1,1,25],[2,1,1]]);
+ assert.ok(calls.filter(x=>x[1]==='verify'&&x[2].verification==='stored').length===3);
 });
 test('failed verification stops archival',async()=>{
  let hasWritten=false;
@@ -55,34 +57,37 @@ test('raw Oracle SQL uses only stable, non-reserved named binds',async()=>{
  assert.doesNotMatch(sql,/:rowNum\\b|:raw\\b|:name\\b|:hash\\b|:row\\b/);
 });
 
-test('500-row chunks are resumed only after source-to-Oracle verification',async()=>{
- const actions=[];const requestFn=async(_method,action,payload)=>{
+test('resume verifies source and prioritizes rows 26 onward before volatile header rows',async()=>{
+ const actions=[],requestFn=async(_method,action,payload)=>{
   actions.push({action,...payload});
   if(action==='preflight')return {ready:true};
   if(action==='manifest')return {day:'2026-11-18',sheets:[{id:7,name:'Big',rows:1000,cols:3}]};
   if(action==='verify'){
-   if(payload.start===1)return {verified:true,sheetId:7,start:1,end:500,rows:500};
-   if(!actions.some(x=>x.action==='batch'&&x.start===501))throw Object.assign(Error('missing'),{status:409});
-   return {verified:true,sheetId:7,start:501,end:1000,rows:500};
+   if(payload.verification==='stored')return {verified:true,sheetId:7,start:payload.start,end:payload.start+payload.size-1,rows:payload.size};
+   if(payload.start===26)return {verified:true,sheetId:7,start:26,end:525,rows:500};
+   throw Object.assign(Error('source not archived yet'),{status:409});
   }
   return {sheetId:7,start:payload.start,end:payload.start+payload.size-1,count:payload.size};
  };
  const result=await archive({requestFn,log:()=>{}});
- assert.equal(result.rows,1000);assert.equal(actions.filter(x=>x.action==='batch').length,1);
- assert.equal(actions.find(x=>x.action==='batch').size,500);
+ assert.equal(result.rows,1000);
+ assert.deepEqual(actions.filter(x=>x.action==='verify'&&x.verification!=='stored').map(x=>x.start),[26,526,1]);
+ assert.deepEqual(actions.filter(x=>x.action==='batch').map(x=>[x.start,x.size]),[[526,475],[1,25]]);
+ assert.ok(actions.filter(x=>x.action==='verify'&&x.verification==='stored').length===2);
 });
-test('failed 500-row write splits into smaller batches without claiming success',async()=>{
- const writes=[];
- const requestFn=async(_method,action,payload)=>{
+test('failed bulk write splits into smaller independently verified batches',async()=>{
+ const writes=[],requestFn=async(_method,action,payload)=>{
   if(action==='preflight')return {ready:true};
-  if(action==='manifest')return {day:'2026-11-18',sheets:[{id:7,name:'Big',rows:500,cols:3}]};
+  if(action==='manifest')return {day:'2026-11-18',sheets:[{id:7,name:'Big',rows:525,cols:3}]};
   if(action==='verify'){
-   if(writes.some(x=>x.start===payload.start&&x.size===payload.size))return {verified:true,sheetId:7,start:payload.start,end:payload.start+payload.size-1,rows:payload.size};
+   if(payload.verification==='stored'&&writes.some(x=>x.start===payload.start&&x.size===payload.size))
+    return {verified:true,sheetId:7,start:payload.start,end:payload.start+payload.size-1,rows:payload.size};
    throw Object.assign(Error('missing'),{status:409});
   }
   if(payload.size===500)throw Object.assign(Error('slow'),{status:503});
   writes.push(payload);return {sheetId:7,start:payload.start,end:payload.start+payload.size-1,count:payload.size};
  };
  const result=await archive({requestFn,log:()=>{}});
- assert.equal(result.rows,500);assert.deepEqual(writes.map(x=>x.size),[250,250]);
+ assert.equal(result.rows,525);
+ assert.deepEqual(writes.map(x=>[x.start,x.size]),[[26,250],[276,250],[1,25]]);
 });
