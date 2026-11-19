@@ -1,12 +1,26 @@
 import oracleCheck from '../lib/_oracle_check.js';
 import rawSnapshot from '../lib/_raw_snapshot.js';
 import losslessImport from '../lib/_oracle_lossless.js';
+import importBest from '../lib/_route_oracle-import-best.js';
+import importBuilders from '../lib/_route_oracle-import-builders.js';
+import importOddsLegacy from '../lib/_route_oracle-import-odds-legacy.js';
+import importSelections from '../lib/_route_oracle-import-selections.js';
+import importStrategies from '../lib/_route_oracle-import-strategies.js';
+import oracleStats from '../lib/_route_oracle-stats.js';
 import {timingSafeEqual} from 'node:crypto';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
+const migratedHandlers=Object.freeze({
+ 'import-best':importBest,
+ 'import-builders':importBuilders,
+ 'import-odds-legacy':importOddsLegacy,
+ 'import-selections':importSelections,
+ 'import-strategies':importStrategies,
+ 'stats':oracleStats
+});
 function authorized(req){
  const expected=process.env.ADMIN_ACCESS_TOKEN||'';
  const supplied=String(req.headers.authorization||'').replace(/^Bearer /,'');
@@ -16,6 +30,10 @@ function authorized(req){
 function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''))}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
+ // Preserve legacy API behavior by forwarding the complete request to the
+ // original handler. Rewrites supply only kind; headers, body and user query stay intact.
+ const migrated=migratedHandlers[req.query.kind];
+ if(migrated)return migrated(req,res);
  if(req.query.kind==='diagnostic')return oracleCheck(req,res);
  // Route the manual lossless import through this existing function to stay within Vercel Hobby (12 functions).
  if(req.query.kind==='lossless')return losslessImport(req,res);

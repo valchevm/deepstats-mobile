@@ -19,5 +19,31 @@
         }
       ]
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/oracle-import-best",
+      "destination": "/api/oracle-archive?kind=import-best"
+    },
+    {
+      "source": "/api/oracle-import-builders",
+      "destination": "/api/oracle-archive?kind=import-builders"
+    },
+    {
+      "source": "/api/oracle-import-odds-legacy",
+      "destination": "/api/oracle-archive?kind=import-odds-legacy"
+    },
+    {
+      "source": "/api/oracle-import-selections",
+      "destination": "/api/oracle-archive?kind=import-selections"
+    },
+    {
+      "source": "/api/oracle-import-strategies",
+      "destination": "/api/oracle-archive?kind=import-strategies"
+    },
+    {
+      "source": "/api/oracle-stats",
+      "destination": "/api/oracle-archive?kind=stats"
+    }
   ]
 }

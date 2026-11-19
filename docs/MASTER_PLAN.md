@@ -191,3 +191,10 @@ For each logical GitHub change:
 - Manual importer requests now target `/api/oracle-archive?kind=lossless`, with separate `mode=preflight|manifest|batch` and unchanged confirmation rule.
 - `api/oracle-lossless-import.js` is removed as an entrypoint in this commit, leaving exactly 12 serverless functions. CI asserts function count and handler dispatch.
 - **Do not infer** production deployment or Oracle import success from passing code tests. Original source workbook unchanged; no archive data deleted.
+
+### 2026-11-19 — Vercel Hobby consolidation: exactly six API functions
+- Moved five Oracle import handlers and Oracle stats handler from top-level `api/` entry points into `lib/_route_*.js` without changing their logic; moved only their relative shared-sheets import path.
+- The original six URLs are preserved with explicit `vercel.json` rewrites to `/api/oracle-archive?kind=...`, and `api/oracle-archive.js` dispatches the request to its original handler before ordinary raw snapshot POST dispatch.
+- The six remaining deployed entrypoints are `builders`, `crests`, `data`, `history`, `oracle-archive`, and `sync-workbook`.
+- Added static route/handler security and six-function budget tests to CI; original Sheets/Oracle contents are unchanged.
+- **Verification:** GitHub CI and Vercel production deployment remain separate gates; do not report deployment success without deployment evidence.
