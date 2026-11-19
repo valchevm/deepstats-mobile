@@ -9,6 +9,6 @@ test('final result conflicts are blocked',()=>{const a=row(),b=row();a[11]='Пе
 test('historical row shift is blocked even when source has valid data',()=>{const a=row(),b=row();a[3]='Other – Team';assert.equal(plan([a],[b],t,50).conflicts[0].type,'ROW_IDENTITY_CHANGED')});
 test('derived formulas are protected',()=>{const a=row(),b=row();a[14]='=A50&D50';b[14]='=A50&"-"&D50';assert.equal(plan([a],[b],t,50).conflicts[0].type,'FORMULA_DIFFERENCE')});
 test('never silently clears recorded results',()=>{const a=row(),b=row();a[11]='';b[11]='Печели';assert.equal(plan([a],[b],t,50).conflicts[0].type,'SOURCE_CLEAR_REQUIRES_REVIEW')});
-test('new complete rows can be appended into empty slots',()=>{const a=row(),b=Array(18).fill('');const x=plan([a],[b],t,50);assert.equal(x.conflicts.length,0);assert.equal(x.writes.length,11)});
+test('new complete rows can be appended into empty slots',()=>{const a=row(),b=Array(18).fill('');const x=plan([a],[b],t,50);assert.equal(x.conflicts.length,0);assert.equal(x.writes.length,12)});
 test('manual checkbox conflict stops write',()=>{const a=row(),b=row();a[12]='';b[12]='✓';assert.equal(plan([a],[b],t,50).conflicts[0].type,'SOURCE_CLEAR_REQUIRES_REVIEW')});
 test('JSON records stay keyed by OddAlerts ID',()=>{const t={name:'МАЧОВЕ JSON',width:11,key:[0,3,4]},a=['19.11.2026','22:00','League','Alpha – Beta','ID-1','','', '{"v":2}','','',''],b=a.slice();b[4]='ID-2';assert.equal(plan([a],[b],t,2).conflicts[0].type,'ROW_IDENTITY_CHANGED')});
