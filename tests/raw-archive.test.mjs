@@ -25,9 +25,9 @@ test('full archival checks all chunks and sheets',async()=>{
   return action==='batch'?{sheetId:payload.sheetId,start:payload.start,end:payload.start+size-1,count:size}:calls.some(x=>x[1]==='batch'&&x[2].sheetId===payload.sheetId&&x[2].start===payload.start)?{verified:true,sheetId:payload.sheetId,start:payload.start,end:payload.start+size-1,rows:size}:(()=>{throw Object.assign(Error('unarchived'),{status:409})})();
  };
  assert.deepEqual(await archive({requestFn:req,log:()=>{}}),{day:'2026-11-18',sheets:2,rows:202,verified:true});
- assert.equal(calls.filter(x=>x[1]==='batch').length,3);assert.equal(calls.filter(x=>x[1]==='verify').length,6);
- assert.deepEqual(calls.filter(x=>x[1]==='batch').map(x=>[x[2].sheetId,x[2].start,x[2].size]),[[1,26,176],[1,1,25],[2,1,1]]);
- assert.ok(calls.filter(x=>x[1]==='verify'&&x[2].verification==='stored').length===3);
+ assert.equal(calls.filter(x=>x[1]==='batch').length,4);assert.equal(calls.filter(x=>x[1]==='verify').length,8);
+ assert.deepEqual(calls.filter(x=>x[1]==='batch').map(x=>[x[2].sheetId,x[2].start,x[2].size]),[[1,26,100],[1,126,76],[1,1,25],[2,1,1]]);
+ assert.ok(calls.filter(x=>x[1]==='verify'&&x[2].verification==='stored').length===4);
 });
 test('failed verification stops archival',async()=>{
  let hasWritten=false;
@@ -64,18 +64,18 @@ test('resume verifies source and prioritizes rows 26 onward before volatile head
   if(action==='manifest')return {day:'2026-11-18',sheets:[{id:7,name:'Big',rows:1000,cols:3}]};
   if(action==='verify'){
    if(payload.verification==='stored')return {verified:true,sheetId:7,start:payload.start,end:payload.start+payload.size-1,rows:payload.size};
-   if(payload.start===26)return {verified:true,sheetId:7,start:26,end:525,rows:500};
+   if(payload.start===26)return {verified:true,sheetId:7,start:26,end:125,rows:100};
    throw Object.assign(Error('source not archived yet'),{status:409});
   }
   return {sheetId:7,start:payload.start,end:payload.start+payload.size-1,count:payload.size};
  };
  const result=await archive({requestFn,log:()=>{}});
  assert.equal(result.rows,1000);
- assert.deepEqual(actions.filter(x=>x.action==='verify'&&x.verification!=='stored').map(x=>x.start),[26,526,1]);
- assert.deepEqual(actions.filter(x=>x.action==='batch').map(x=>[x.start,x.size]),[[526,475],[1,25]]);
- assert.ok(actions.filter(x=>x.action==='verify'&&x.verification==='stored').length===2);
+ assert.deepEqual(actions.filter(x=>x.action==='verify'&&x.verification!=='stored').map(x=>x.start),[26,126,226,326,426,526,626,726,826,926,1]);
+ assert.deepEqual(actions.filter(x=>x.action==='batch').map(x=>[x.start,x.size]),[[126,100],[226,100],[326,100],[426,100],[526,100],[626,100],[726,100],[826,100],[926,75],[1,25]]);
+ assert.ok(actions.filter(x=>x.action==='verify'&&x.verification==='stored').length===10);
 });
-test('failed bulk write splits into smaller independently verified batches',async()=>{
+test('archive never requests more than 100 rows and verifies each block independently',async()=>{
  const writes=[],requestFn=async(_method,action,payload)=>{
   if(action==='preflight')return {ready:true};
   if(action==='manifest')return {day:'2026-11-18',sheets:[{id:7,name:'Big',rows:525,cols:3}]};
@@ -84,12 +84,12 @@ test('failed bulk write splits into smaller independently verified batches',asyn
     return {verified:true,sheetId:7,start:payload.start,end:payload.start+payload.size-1,rows:payload.size};
    throw Object.assign(Error('missing'),{status:409});
   }
-  if(payload.size===500)throw Object.assign(Error('slow'),{status:503});
+  if(payload.size>100)throw Object.assign(Error('oversized batch'),{status:503});
   writes.push(payload);return {sheetId:7,start:payload.start,end:payload.start+payload.size-1,count:payload.size};
  };
  const result=await archive({requestFn,log:()=>{}});
  assert.equal(result.rows,525);
- assert.deepEqual(writes.map(x=>[x.start,x.size]),[[26,250],[276,250],[1,25]]);
+ assert.deepEqual(writes.map(x=>[x.start,x.size]),[[26,100],[126,100],[226,100],[326,100],[426,100],[1,25]]);
 });
 
 test('HTTP 503 with nested Google 429 is retried as quota, not a generic server failure',async()=>{
@@ -119,7 +119,7 @@ test('quota-limited batches are not split into smaller quota-consuming requests'
  };
  await assert.rejects(archive({requestFn:req,log:()=>{}}),/quota blocked/);
  assert.equal(batchCalls,7);
- assert.ok(writes.every(([start,size])=>start===26&&size===500));
+ assert.ok(writes.every(([start,size])=>start===26&&size===100));
 });
 test('HTTP error reads Retry-After without losing original provider code',async()=>{
  const fetcher=async()=>({ok:false,status:429,headers:{get:()=> '120'},text:async()=>JSON.stringify({errorCode:'SHEETS_RATE_LIMITED'})});

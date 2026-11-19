@@ -79,7 +79,7 @@ export async function archive({requestFn=request,log=console.log,wait=requestFn=
   let saved;
   try{saved=await retry('POST','batch',payload,requestFn,{wait})}
   catch(e){
-   // Divide a slow/failed 500-row operation into smaller independently committed chunks.
+   // Recovery for an explicitly larger batch, if enabled in future; normal batches are always 100 rows.
    if(size>100&&!e.quotaLimited&&e.status!==429&&String(e.errorCode)!=='429'&&e.errorCode!=='SHEETS_RATE_LIMITED'&&(e.status===503||e.status===502||e.status===504||e.code==='SNAPSHOT_REQUEST_TIMEOUT')){
     const first=Math.ceil(expected/2),second=expected-first;
     log('REDUCING BATCH '+sh.name+' rows '+start+'-'+(start+expected-1)+' to '+first+' + '+second);
@@ -99,7 +99,7 @@ export async function archive({requestFn=request,log=console.log,wait=requestFn=
   // Archive stable rows first. Sheet headers/Best of the Day can shift while updating.
   // The deferred prefix is still archived and verified, never skipped.
   const firstStable=Math.min(sh.rows+1,26);
-  for(let start=firstStable;start<=sh.rows;start+=500)await processChunk(sh,start,Math.min(500,sh.rows-start+1));
+  for(let start=firstStable;start<=sh.rows;start+=100)await processChunk(sh,start,Math.min(100,sh.rows-start+1));
   if(firstStable>1){log('ARCHIVING DEFERRED TOP ROWS '+sh.name+' rows 1-'+(firstStable-1));await processChunk(sh,1,firstStable-1);}
   log('VERIFIED '+sh.name+' '+sh.rows+' rows');
  }

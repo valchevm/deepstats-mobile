@@ -198,3 +198,8 @@ For each logical GitHub change:
 - The six remaining deployed entrypoints are `builders`, `crests`, `data`, `history`, `oracle-archive`, and `sync-workbook`.
 - Added static route/handler security and six-function budget tests to CI; original Sheets/Oracle contents are unchanged.
 - **Verification:** GitHub CI and Vercel production deployment remain separate gates; do not report deployment success without deployment evidence.
+
+### 2026-11-19 — Raw Oracle snapshot processes at most 100 rows per batch
+- `scripts/daily-raw-oracle-snapshot.mjs` now issues **100-row source/Oracle chunks**, rather than 500-row chunks, for the automatic `Daily lossless Oracle Sheets snapshot` workflow. The last chunk of each tab may be smaller.
+- Source snapshot verification and no-delete policies remain unchanged. Tests assert exact partition boundaries, resume behavior, and quota handling on 100-row chunks.
+- This adjustment increases the number of requests; existing pacing and Google Sheets 429 cooldown remain essential. A successful production run must still be verified separately.
