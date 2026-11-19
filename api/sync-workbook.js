@@ -28,10 +28,14 @@ export default async function handler(req,res){
  try{
   if(req.method==='GET'){
    const [src,dst]=await Promise.all([SOURCE,TARGET].map(spreadsheetId=>api.spreadsheets.get({spreadsheetId,fields:'spreadsheetId,sheets(properties(sheetId,title,gridProperties(rowCount,columnCount)))'})));
-   const tabs=Object.entries(TABS).map(([key,t])=>{
+   const used=await Promise.all(Object.values(TABS).map(t=>api.spreadsheets.values.get({spreadsheetId:SOURCE,range:`${quote(t.name)}!A1:A${t.max}`,valueRenderOption:'FORMATTED_VALUE'})));
+   const tabs=Object.entries(TABS).map(([key,t],index)=>{
     const a=src.data.sheets.find(s=>s.properties.title===t.name)?.properties;
     const b=dst.data.sheets.find(s=>s.properties.title===t.name)?.properties;
-    return {key,ready:!!(a&&b&&b.gridProperties.columnCount>=t.width&&b.gridProperties.rowCount>=a.gridProperties.rowCount),sourceRows:a?.gridProperties.rowCount,targetRows:b?.gridProperties.rowCount};
+    const values=used[index].data.values||[];
+    let lastUsed=values.length;
+    while(lastUsed>0&&!String(values[lastUsed-1]?.[0]??'').trim())lastUsed--;
+    return {key,ready:!!(a&&b&&b.gridProperties.columnCount>=t.width&&b.gridProperties.rowCount>=lastUsed),lastUsed,sourceRows:a?.gridProperties.rowCount,targetRows:b?.gridProperties.rowCount};
    });
    return res.status(tabs.every(t=>t.ready)?200:409).json({ready:tabs.every(t=>t.ready),tabs,source:SOURCE,target:TARGET});
   }
