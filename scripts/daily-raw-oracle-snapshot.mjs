@@ -69,13 +69,17 @@ export async function archive({requestFn=request,log=console.log}={}){
    throw e;
   }
   if(saved.sheetId!==sh.id||saved.start!==start||saved.end!==start+expected-1||saved.count!==expected)throw Error('Archive row-count mismatch '+sh.name+' row '+start);
-  const verified=await retry('POST','verify',payload,requestFn);
+  const verified=await retry('POST','verify',{...payload,verification:'stored'},requestFn);
   if(verified.verified!==true||verified.sheetId!==sh.id||verified.start!==start||verified.end!==start+expected-1||verified.rows!==expected)throw Error('Oracle verification mismatch '+sh.name+' row '+start);
   total+=expected;
  }
  for(const sh of manifest.sheets){
   if(!Number.isInteger(sh.id)||!Number.isInteger(sh.rows)||sh.rows<1||!Number.isInteger(sh.cols)||sh.cols<1)throw Error('Invalid source dimensions for '+sh.name);
-  for(let start=1;start<=sh.rows;start+=500)await processChunk(sh,start,Math.min(500,sh.rows-start+1));
+  // Archive stable rows first. Sheet headers/Best of the Day can shift while updating.
+  // The deferred prefix is still archived and verified, never skipped.
+  const firstStable=Math.min(sh.rows+1,26);
+  for(let start=firstStable;start<=sh.rows;start+=500)await processChunk(sh,start,Math.min(500,sh.rows-start+1));
+  if(firstStable>1){log('ARCHIVING DEFERRED TOP ROWS '+sh.name+' rows 1-'+(firstStable-1));await processChunk(sh,1,firstStable-1);}
   log('VERIFIED '+sh.name+' '+sh.rows+' rows');
  }
  log('REUSED VERIFIED ROWS '+skipped);
