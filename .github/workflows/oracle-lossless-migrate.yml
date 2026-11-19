@@ -26,7 +26,7 @@ jobs:
           node-version: '22'
       - name: Validate import scripts
         run: |
-          node --check api/oracle-lossless-import.js
+          node --check lib/_oracle_lossless.js
           node --check scripts/migrate-original-to-oracle.mjs
       - name: Preflight, migrate and independently verify rows in Oracle
         env:

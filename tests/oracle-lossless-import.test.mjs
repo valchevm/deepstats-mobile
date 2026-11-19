@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-const api=readFileSync(new URL('../api/oracle-lossless-import.js',import.meta.url),'utf8');
+import {readFileSync, readdirSync} from 'node:fs';
+const api=readFileSync(new URL('../lib/_oracle_lossless.js',import.meta.url),'utf8');
 const runner=readFileSync(new URL('../scripts/migrate-original-to-oracle.mjs',import.meta.url),'utf8');
 test('original workbook is explicitly read-only and pinned',()=>{
  assert.match(api,/const SOURCE_ID='1iEufNQy8doCcfPA0LkHxPLvvXKiRKc60rH2dtyVx_oo'/);
@@ -16,4 +16,17 @@ test('import is manual and requires explicit confirmation',()=>{
  assert.match(runner,/MIGRATION_MODE==='live'/);
  assert.match(api,/MIGRATE_LOSSLESS_ORIGINAL/);
  assert.match(runner,/throw Error\('Non-empty count mismatch/);
+});
+
+test('Vercel Hobby deployment uses at most twelve API functions',()=>{
+ const files=readdirSync(new URL('../api/',import.meta.url)).filter(name=>name.endsWith('.js'));
+ assert.equal(files.length,12,'Every top-level API JS file is one Vercel function');
+});
+test('lossless handler is mounted on existing authenticated Oracle archive route',()=>{
+ const router=readFileSync(new URL('../api/oracle-archive.js',import.meta.url),'utf8');
+ assert.match(router,/import losslessImport from '\.\.\/lib\/_oracle_lossless\.js'/);
+ assert.match(router,/if\(req\.query\.kind==='lossless'\)return losslessImport\(req,res\)/);
+ assert.ok(router.indexOf("kind==='lossless'")<router.indexOf("req.method==='POST'"),'Dispatch before general POST archive handling');
+ assert.match(runner,/api\/oracle-archive\?kind=lossless/);
+ assert.doesNotMatch(runner,/api\/oracle-lossless-import/);
 });

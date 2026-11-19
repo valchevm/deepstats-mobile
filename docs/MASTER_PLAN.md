@@ -184,3 +184,10 @@ For each logical GitHub change:
 - `scripts/daily-raw-oracle-snapshot.mjs` now paces real outgoing API calls (8 seconds by default), recognizes both previous `503 {errorCode:429}` and new 429 status, retries with at least 65 seconds wait for quota reset, and never recursively splits batches when blocked by a quota.
 - The source Google Sheets workbook is READ ONLY, unchanged. Oracle table contents remain guarded by chunk verification; no deletes occur. Added regression tests for quota recovery and no splitting.
 - **Verification state:** code/CI only until an authenticated GitHub archive job completes; do not infer that the full snapshot finished from tests.
+
+### 2026-11-19 — Vercel Hobby function-count deployment fix
+- Root cause: repository had 13 top-level `api/*.js` entrypoints after introducing lossless importer; Vercel Hobby accepts at most 12.
+- Move its code without deleting functionality to internal `lib/_oracle_lossless.js`, and dispatch only `?kind=lossless` through existing `api/oracle-archive.js` (admin-token authorization retained).
+- Manual importer requests now target `/api/oracle-archive?kind=lossless`, with separate `mode=preflight|manifest|batch` and unchanged confirmation rule.
+- `api/oracle-lossless-import.js` is removed as an entrypoint in this commit, leaving exactly 12 serverless functions. CI asserts function count and handler dispatch.
+- **Do not infer** production deployment or Oracle import success from passing code tests. Original source workbook unchanged; no archive data deleted.

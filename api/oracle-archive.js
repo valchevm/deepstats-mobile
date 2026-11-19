@@ -1,5 +1,6 @@
 import oracleCheck from '../lib/_oracle_check.js';
 import rawSnapshot from '../lib/_raw_snapshot.js';
+import losslessImport from '../lib/_oracle_lossless.js';
 import {timingSafeEqual} from 'node:crypto';
 import oracledb from 'oracledb';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
@@ -16,6 +17,8 @@ function validDate(v){return /^\d{4}-\d{2}-\d{2}$/.test(String(v||''))}
 export default async function handler(req,res){
  res.setHeader('Cache-Control','private, no-store');
  if(req.query.kind==='diagnostic')return oracleCheck(req,res);
+ // Route the manual lossless import through this existing function to stay within Vercel Hobby (12 functions).
+ if(req.query.kind==='lossless')return losslessImport(req,res);
  if(req.method==='POST'||['raw-manifest','raw-preflight'].includes(req.query.kind))return rawSnapshot(req,res);
  if(req.method!=='GET')return res.status(405).json({error:'Method not allowed'});
  if(!authorized(req))return res.status(403).json({error:'Forbidden'});

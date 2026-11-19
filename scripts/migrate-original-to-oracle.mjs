@@ -12,9 +12,9 @@ async function call(method,mode,args={}){
  try{
   let suffix='';
   const init={method,headers:{Authorization:'Bearer '+TOKEN},signal:controller.signal};
-  if(method==='GET')suffix='?'+new URLSearchParams({mode,...args}).toString();
+  if(method==='GET')suffix='&'+new URLSearchParams({mode,...args}).toString();
   else{init.headers['Content-Type']='application/json';init.body=JSON.stringify({mode,...args});}
-  const res=await fetch(BASE+'/api/oracle-lossless-import'+suffix,init);
+  const res=await fetch(BASE+'/api/oracle-archive?kind=lossless'+suffix,init);
   const txt=await res.text();let data;
   try{data=JSON.parse(txt)}catch{throw Error('Unexpected non-JSON response HTTP '+res.status)}
   if(!res.ok){const e=Error('HTTP '+res.status+' '+JSON.stringify(data).slice(0,600));e.code=res.status;throw e;}
